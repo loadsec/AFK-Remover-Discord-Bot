@@ -458,7 +458,126 @@ ${availableLanguages}`
     });
   }
 
-  // Other commands go here...
+  if (commandName === "afkinfo") {
+    const guildConfig = getGuildConfig(guild.id);
+    if (!guildConfig) {
+      const noConfigEmbed = new EmbedBuilder()
+        .setColor(0xff0000)
+        .setTitle("❌ No Configuration Found")
+        .setDescription(t(guild.id, "no_configuration"))
+        .setFooter({ text: "Use /setup to configure the bot." });
+
+      return interaction.reply({
+        embeds: [noConfigEmbed],
+        ephemeral: true,
+      });
+    }
+
+    // Create embed
+    const afkInfoEmbed = new EmbedBuilder()
+      .setColor(0x0099ff)
+      .setTitle("ℹ️ AFK Configuration")
+      .addFields(
+        {
+          name: "AFK Channel",
+          value: guildConfig.afkChannelName || "Not configured",
+          inline: true,
+        },
+        {
+          name: "Allowed Roles",
+          value: guildConfig.allowedRoles?.length
+            ? guildConfig.allowedRoles
+                .map((role) => `<@&${role.id}>`)
+                .join(", ")
+            : "No roles configured",
+          inline: true,
+        },
+        {
+          name: "Language",
+          value: guildConfig.language?.toUpperCase() || "EN_US",
+          inline: true,
+        }
+      )
+      .setFooter({ text: "AFK Configuration Details" })
+      .setTimestamp();
+
+    return interaction.reply({ embeds: [afkInfoEmbed], ephemeral: true });
+  }
+
+  if (commandName === "setafk") {
+    const channelInput = options.getString("channel");
+
+    // Find AFK channel
+    const afkChannel = findVoiceChannel(guild, channelInput);
+    if (!afkChannel) {
+      const invalidChannelEmbed = new EmbedBuilder()
+        .setColor(0xffa500)
+        .setTitle("⚠️ Invalid Channel")
+        .setDescription(t(guild.id, "invalid_channel"))
+        .setFooter({
+          text: "Please provide a valid voice channel name or ID.",
+        });
+
+      return interaction.reply({
+        embeds: [invalidChannelEmbed],
+        ephemeral: true,
+      });
+    }
+
+    // Update AFK channel in configuration
+    const guildConfig = getGuildConfig(guild.id) || {};
+    guildConfig.afkChannelId = afkChannel.id;
+    guildConfig.afkChannelName = afkChannel.name;
+    saveGuildConfig(guild.id, guildConfig);
+
+    const afkChannelSetEmbed = new EmbedBuilder()
+      .setColor(0x00ff00)
+      .setTitle("✅ AFK Channel Set")
+      .setDescription(
+        t(guild.id, "afk_channel_set", { channel: afkChannel.name })
+      )
+      .setFooter({ text: "AFK channel updated successfully." });
+
+    return interaction.reply({
+      embeds: [afkChannelSetEmbed],
+      ephemeral: true,
+    });
+  }
+
+  if (commandName === "setroles") {
+    const rolesInput = options.getString("roles");
+
+    // Find roles
+    const roles = findAdminRoles(guild); // Add admin roles by default
+    const extraRoles = rolesInput
+      .split(",")
+      .map((r) => r.trim())
+      .filter(
+        (role) =>
+          !!guild.roles.cache.find(
+            (x) => x.name.toLowerCase() === role.toLowerCase()
+          )
+      );
+
+    // Update roles in configuration
+    const guildConfig = getGuildConfig(guild.id) || {};
+    guildConfig.allowedRoles = [...roles, ...extraRoles].map((role) => ({
+      id: role.id,
+      name: role.name,
+    }));
+    saveGuildConfig(guild.id, guildConfig);
+
+    const rolesSetEmbed = new EmbedBuilder()
+      .setColor(0x00ff00)
+      .setTitle("✅ Roles Set")
+      .setDescription(t(guild.id, "roles_set"))
+      .setFooter({ text: "Roles updated successfully." });
+
+    return interaction.reply({
+      embeds: [rolesSetEmbed],
+      ephemeral: true,
+    });
+  }
 });
 
 // Handle voice state updates to disconnect users from the AFK channel
