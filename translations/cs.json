@@ -1,0 +1,19 @@
+{
+  "no_permission": "Nemáte oprávnění používat tento příkaz. Musíte být administrátor nebo mít jednu z povolených rolí: {roles}.",
+  "invalid_channel": "Neplatný kanál. Uveďte prosím platný hlasový kanál.",
+  "invalid_roles": "Neplatné role. Uveďte prosím platné role.",
+  "setup_success": "Nastavení dokončeno! Kanál AFK byl nastaven na {channel} a jazyk na {language}.",
+  "no_configuration": "Pro tento server nebyla nalezena žádná konfigurace AFK.",
+  "afkinfo_title": "Konfigurace AFK",
+  "afkinfo_channel": "Kanál AFK",
+  "afkinfo_roles": "Povolené Role",
+  "afkinfo_language": "Jazyk",
+  "afkinfo_not_set": "Nenastaveno",
+  "afkinfo_no_roles": "Žádné role nebyly nastaveny",
+  "afkinfo_footer": "Podrobnosti Konfigurace AFK",
+  "language_auto_set": "Jazyk byl automaticky nastaven na {language} podle nastavení serveru.",
+  "setup_roles_added": "Role s oprávněním 'Administrátor' byly automaticky zjištěny: {roles}.",
+  "server_data_updated": "Data serveru byla úspěšně aktualizována v {time}.",
+  "error_voice_state_update": "Při zpracování aktualizace stavu hlasu došlo k chybě.",
+  "bot_move_permission_missing": "Bot nemá oprávnění k 'Přesouvání Členů' v kanálu AFK."
+}

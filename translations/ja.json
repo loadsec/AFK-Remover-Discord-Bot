@@ -1,0 +1,19 @@
+{
+  "no_permission": "このコマンドを使用する権限がありません。管理者であるか、許可された役職のいずれかを持っている必要があります: {roles}。",
+  "invalid_channel": "無効なチャンネルです。有効な音声チャンネルを指定してください。",
+  "invalid_roles": "無効な役職です。有効な役職を指定してください。",
+  "setup_success": "設定完了！AFKチャンネルが {channel} に設定され、言語が {language} に設定されました。",
+  "no_configuration": "このサーバーにAFK設定が見つかりません。",
+  "afkinfo_title": "AFK設定",
+  "afkinfo_channel": "AFKチャンネル",
+  "afkinfo_roles": "許可された役職",
+  "afkinfo_language": "言語",
+  "afkinfo_not_set": "未設定",
+  "afkinfo_no_roles": "設定された役職がありません",
+  "afkinfo_footer": "AFK設定の詳細",
+  "language_auto_set": "サーバー設定に基づいて言語が自動的に {language} に設定されました。",
+  "setup_roles_added": "「管理者」の権限を持つ役職が自動的に検出されました: {roles}。",
+  "server_data_updated": "サーバーデータが {time} に正常に更新されました。",
+  "error_voice_state_update": "音声状態の更新を処理中にエラーが発生しました。",
+  "bot_move_permission_missing": "AFKチャンネルで「メンバーを移動する」権限がありません。"
+}

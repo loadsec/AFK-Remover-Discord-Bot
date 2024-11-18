@@ -1,0 +1,19 @@
+{
+  "no_permission": "您没有权限使用此命令。您必须是管理员或拥有以下允许的角色之一：{roles}。",
+  "invalid_channel": "无效的频道。请指定一个有效的语音频道。",
+  "invalid_roles": "无效的角色。请指定有效的角色。",
+  "setup_success": "设置完成！AFK频道已设置为 {channel}，语言已设置为 {language}。",
+  "no_configuration": "未找到此服务器的AFK配置。",
+  "afkinfo_title": "AFK 配置",
+  "afkinfo_channel": "AFK频道",
+  "afkinfo_roles": "允许的角色",
+  "afkinfo_language": "语言",
+  "afkinfo_not_set": "未配置",
+  "afkinfo_no_roles": "未配置任何角色",
+  "afkinfo_footer": "AFK 配置详情",
+  "language_auto_set": "语言已根据服务器设置自动设置为 {language}。",
+  "setup_roles_added": "具有“管理员”权限的角色已自动检测到：{roles}。",
+  "server_data_updated": "服务器数据已于 {time} 成功更新。",
+  "error_voice_state_update": "处理语音状态更新时发生错误。",
+  "bot_move_permission_missing": "机器人没有在AFK频道中“移动成员”的权限。"
+}

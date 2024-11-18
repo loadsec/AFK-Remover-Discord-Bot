@@ -1,0 +1,19 @@
+{
+  "no_permission": "Bạn không có quyền sử dụng lệnh này. Bạn phải là quản trị viên hoặc có một trong các vai trò được phép: {roles}.",
+  "invalid_channel": "Kênh không hợp lệ. Vui lòng chỉ định một kênh thoại hợp lệ.",
+  "invalid_roles": "Vai trò không hợp lệ. Vui lòng chỉ định các vai trò hợp lệ.",
+  "setup_success": "Cài đặt hoàn tất! Kênh AFK đã được đặt thành {channel} và ngôn ngữ thành {language}.",
+  "no_configuration": "Không tìm thấy cấu hình AFK cho máy chủ này.",
+  "afkinfo_title": "Cấu hình AFK",
+  "afkinfo_channel": "Kênh AFK",
+  "afkinfo_roles": "Vai trò được phép",
+  "afkinfo_language": "Ngôn ngữ",
+  "afkinfo_not_set": "Chưa được cấu hình",
+  "afkinfo_no_roles": "Chưa có vai trò nào được cấu hình",
+  "afkinfo_footer": "Chi tiết cấu hình AFK",
+  "language_auto_set": "Ngôn ngữ đã được tự động đặt thành {language} dựa trên cài đặt máy chủ.",
+  "setup_roles_added": "Các vai trò có quyền 'Quản trị viên' đã được phát hiện tự động: {roles}.",
+  "server_data_updated": "Dữ liệu máy chủ đã được cập nhật thành công lúc {time}.",
+  "error_voice_state_update": "Đã xảy ra lỗi khi xử lý cập nhật trạng thái giọng nói.",
+  "bot_move_permission_missing": "Bot không có quyền 'Di chuyển thành viên' trong kênh AFK."
+}

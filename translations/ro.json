@@ -1,0 +1,19 @@
+{
+  "no_permission": "Nu aveți permisiunea de a utiliza această comandă. Trebuie să fiți administrator sau să aveți unul dintre rolurile permise: {roles}.",
+  "invalid_channel": "Canal invalid. Vă rugăm să menționați un canal vocal valid.",
+  "invalid_roles": "Roluri invalide. Vă rugăm să menționați roluri valide.",
+  "setup_success": "Configurare finalizată! Canalul AFK a fost setat la {channel}, iar limba a fost setată la {language}.",
+  "no_configuration": "Nu a fost găsită nicio configurație AFK pentru acest server.",
+  "afkinfo_title": "Configurare AFK",
+  "afkinfo_channel": "Canal AFK",
+  "afkinfo_roles": "Roluri Permise",
+  "afkinfo_language": "Limbă",
+  "afkinfo_not_set": "Nu este configurat",
+  "afkinfo_no_roles": "Nu au fost configurate roluri",
+  "afkinfo_footer": "Detalii despre configurarea AFK",
+  "language_auto_set": "Limba a fost setată automat la {language} pe baza setărilor serverului.",
+  "setup_roles_added": "Roluri detectate automat cu permisiunea 'Administrator': {roles}.",
+  "server_data_updated": "Datele serverului au fost actualizate cu succes la {time}.",
+  "error_voice_state_update": "A apărut o eroare în timpul procesării actualizării stării vocale.",
+  "bot_move_permission_missing": "Botul nu are permisiunea de a 'Muta Membrii' în canalul AFK."
+}

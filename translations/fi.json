@@ -1,0 +1,19 @@
+{
+  "no_permission": "Sinulla ei ole lupaa käyttää tätä komentoa. Sinun on oltava ylläpitäjä tai sinulla on oltava jokin sallituista rooleista: {roles}.",
+  "invalid_channel": "Virheellinen kanava. Ole hyvä ja mainitse kelvollinen äänikanava.",
+  "invalid_roles": "Virheelliset roolit. Ole hyvä ja mainitse kelvolliset roolit.",
+  "setup_success": "Määritys valmis! AFK-kanava on asetettu kanavaan {channel} ja kieli kieleen {language}.",
+  "no_configuration": "Tälle palvelimelle ei löytynyt AFK-määritystä.",
+  "afkinfo_title": "AFK-asetukset",
+  "afkinfo_channel": "AFK-kanava",
+  "afkinfo_roles": "Sallitut roolit",
+  "afkinfo_language": "Kieli",
+  "afkinfo_not_set": "Ei asetettu",
+  "afkinfo_no_roles": "Ei määritettyjä rooleja",
+  "afkinfo_footer": "AFK-asetusten tiedot",
+  "language_auto_set": "Kieli asetettiin automaattisesti kieleksi {language} palvelimen asetusten perusteella.",
+  "setup_roles_added": "Roolit, joilla on 'Ylläpitäjä'-oikeudet, havaittiin automaattisesti: {roles}.",
+  "server_data_updated": "Palvelintiedot päivitettiin onnistuneesti klo {time}.",
+  "error_voice_state_update": "Äänitilan päivityksen käsittelyssä tapahtui virhe.",
+  "bot_move_permission_missing": "Botilla ei ole oikeutta 'Siirtää jäseniä' AFK-kanavassa."
+}

@@ -1,0 +1,19 @@
+{
+  "no_permission": "您沒有使用此命令的權限。您必須是管理員或擁有以下允許的角色之一：{roles}。",
+  "invalid_channel": "無效的頻道。請指定一個有效的語音頻道。",
+  "invalid_roles": "無效的角色。請指定有效的角色。",
+  "setup_success": "設定完成！AFK 頻道已設定為 {channel}，語言已設定為 {language}。",
+  "no_configuration": "未找到此伺服器的 AFK 配置。",
+  "afkinfo_title": "AFK 配置",
+  "afkinfo_channel": "AFK 頻道",
+  "afkinfo_roles": "允許的角色",
+  "afkinfo_language": "語言",
+  "afkinfo_not_set": "未設定",
+  "afkinfo_no_roles": "未配置任何角色",
+  "afkinfo_footer": "AFK 配置詳情",
+  "language_auto_set": "語言已根據伺服器設定自動設定為 {language}。",
+  "setup_roles_added": "具有「管理員」權限的角色已自動檢測到：{roles}。",
+  "server_data_updated": "伺服器數據已於 {time} 成功更新。",
+  "error_voice_state_update": "處理語音狀態更新時發生錯誤。",
+  "bot_move_permission_missing": "機器人沒有在 AFK 頻道中「移動成員」的權限。"
+}

@@ -1,0 +1,19 @@
+{
+  "no_permission": "이 명령을 사용할 권한이 없습니다. 관리자이거나 허용된 역할 중 하나를 가지고 있어야 합니다: {roles}.",
+  "invalid_channel": "잘못된 채널입니다. 유효한 음성 채널을 지정해주세요.",
+  "invalid_roles": "잘못된 역할입니다. 유효한 역할을 지정해주세요.",
+  "setup_success": "설정 완료! AFK 채널이 {channel}(으)로 설정되었고, 언어가 {language}(으)로 설정되었습니다.",
+  "no_configuration": "이 서버에 대한 AFK 설정을 찾을 수 없습니다.",
+  "afkinfo_title": "AFK 설정",
+  "afkinfo_channel": "AFK 채널",
+  "afkinfo_roles": "허용된 역할",
+  "afkinfo_language": "언어",
+  "afkinfo_not_set": "설정되지 않음",
+  "afkinfo_no_roles": "설정된 역할 없음",
+  "afkinfo_footer": "AFK 설정 세부정보",
+  "language_auto_set": "서버 설정을 기반으로 언어가 {language}(으)로 자동 설정되었습니다.",
+  "setup_roles_added": "'관리자' 권한이 있는 역할이 자동으로 감지되었습니다: {roles}.",
+  "server_data_updated": "서버 데이터가 {time}에 성공적으로 업데이트되었습니다.",
+  "error_voice_state_update": "음성 상태 업데이트를 처리하는 중 오류가 발생했습니다.",
+  "bot_move_permission_missing": "봇에 AFK 채널에서 '멤버 이동' 권한이 없습니다."
+}

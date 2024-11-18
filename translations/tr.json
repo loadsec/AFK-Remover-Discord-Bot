@@ -1,0 +1,19 @@
+{
+  "no_permission": "Bu komutu kullanma yetkiniz yok. Yönetici olmanız veya izin verilen rollerden birine sahip olmanız gerekir: {roles}.",
+  "invalid_channel": "Geçersiz kanal. Lütfen geçerli bir sesli kanal belirtin.",
+  "invalid_roles": "Geçersiz roller. Lütfen geçerli roller belirtin.",
+  "setup_success": "Kurulum tamamlandı! AFK kanalı {channel} olarak ayarlandı ve dil {language} olarak seçildi.",
+  "no_configuration": "Bu sunucu için herhangi bir AFK yapılandırması bulunamadı.",
+  "afkinfo_title": "AFK Yapılandırması",
+  "afkinfo_channel": "AFK Kanalı",
+  "afkinfo_roles": "İzin Verilen Roller",
+  "afkinfo_language": "Dil",
+  "afkinfo_not_set": "Ayarlanmadı",
+  "afkinfo_no_roles": "Hiçbir rol yapılandırılmadı",
+  "afkinfo_footer": "AFK Yapılandırma Detayları",
+  "language_auto_set": "Dil sunucu ayarlarına göre otomatik olarak {language} olarak seçildi.",
+  "setup_roles_added": "'Yönetici' yetkisine sahip roller otomatik olarak algılandı: {roles}.",
+  "server_data_updated": "Sunucu verileri başarıyla {time} tarihinde güncellendi.",
+  "error_voice_state_update": "Ses durumu güncellemesi işlenirken bir hata oluştu.",
+  "bot_move_permission_missing": "Botun AFK kanalında 'Üyeleri Taşıma' yetkisi yok."
+}
