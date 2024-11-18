@@ -129,25 +129,23 @@ const rest = new REST({ version: "10" }).setToken(BOT_TOKEN);
     const commands = [
       {
         name: "setup",
-        description: "Set up the AFK channel, roles, and language for the bot.",
+        description: t(null, "setup_description"),
         options: [
           {
             name: "channel",
-            description: "The voice channel to set as AFK (name or ID).",
+            description: t(null, "setup_channel_description"),
             type: 3, // STRING
             required: true,
           },
           {
             name: "roles",
-            description:
-              "Mention the roles allowed to configure the bot (comma-separated IDs or names).",
+            description: t(null, "setup_roles_description"),
             type: 3, // STRING
             required: true,
           },
           {
             name: "language",
-            description:
-              "Enter the language for this server (e.g., en_us, pt_br).",
+            description: t(null, "setup_language_description"),
             type: 3, // STRING
             required: true,
           },
@@ -155,16 +153,15 @@ const rest = new REST({ version: "10" }).setToken(BOT_TOKEN);
       },
       {
         name: "afkinfo",
-        description:
-          "Displays the current AFK channel, roles, and language configuration.",
+        description: t(null, "afkinfo_description"),
       },
       {
         name: "setafk",
-        description: "Set the AFK channel for the bot.",
+        description: t(null, "setafk_description"),
         options: [
           {
             name: "channel",
-            description: "The voice channel to set as AFK (name or ID).",
+            description: t(null, "setafk_channel_description"),
             type: 3, // STRING
             required: true,
           },
@@ -172,12 +169,11 @@ const rest = new REST({ version: "10" }).setToken(BOT_TOKEN);
       },
       {
         name: "setroles",
-        description: "Set the roles allowed to configure the bot.",
+        description: t(null, "setroles_description"),
         options: [
           {
             name: "roles",
-            description:
-              "Mention the roles allowed to configure the bot (comma-separated IDs or names).",
+            description: t(null, "setroles_roles_description"),
             type: 3, // STRING
             required: true,
           },
@@ -185,12 +181,11 @@ const rest = new REST({ version: "10" }).setToken(BOT_TOKEN);
       },
       {
         name: "setlang",
-        description: "Set the language for the bot.",
+        description: t(null, "setlang_description"),
         options: [
           {
             name: "language",
-            description:
-              "Enter the language for this server (e.g., en_us, pt_br).",
+            description: t(null, "setlang_language_description"),
             type: 3, // STRING
             required: false,
           },
@@ -263,7 +258,7 @@ async function updateServerData() {
     }
   });
 
-  console.log(`Server data updated at ${getBrasiliaTime()}`);
+  console.log(t(null, "server_data_updated", { time: getBrasiliaTime() }));
 }
 
 // Handle interaction commands
@@ -295,9 +290,9 @@ client.on("interactionCreate", async (interaction) => {
   if (!hasPermission()) {
     const noPermissionEmbed = new EmbedBuilder()
       .setColor(0xff0000)
-      .setTitle("❌ Permission Denied")
+      .setTitle(t(guild.id, "permission_denied_title"))
       .setDescription(t(guild.id, "no_permission"))
-      .setFooter({ text: "Contact an admin if you believe this is an error." });
+      .setFooter({ text: t(guild.id, "permission_denied_footer") });
 
     return interaction.reply({
       embeds: [noPermissionEmbed],
@@ -315,11 +310,9 @@ client.on("interactionCreate", async (interaction) => {
     if (!afkChannel) {
       const invalidChannelEmbed = new EmbedBuilder()
         .setColor(0xffa500)
-        .setTitle("⚠️ Invalid Channel")
+        .setTitle(t(guild.id, "invalid_channel_title"))
         .setDescription(t(guild.id, "invalid_channel"))
-        .setFooter({
-          text: "Please provide a valid voice channel name or ID.",
-        });
+        .setFooter({ text: t(guild.id, "invalid_channel_footer") });
 
       return interaction.reply({
         embeds: [invalidChannelEmbed],
@@ -346,14 +339,14 @@ client.on("interactionCreate", async (interaction) => {
         .join(", ");
       const invalidLanguageEmbed = new EmbedBuilder()
         .setColor(0xffa500)
-        .setTitle("⚠️ Invalid Language")
+        .setTitle(t(guild.id, "invalid_language_title"))
         .setDescription(
           `${t(guild.id, "invalid_language")}
 
-**Available languages:**
+**${t(guild.id, "available_languages_label")}:**
 ${availableLanguages}`
         )
-        .setFooter({ text: "Please provide a valid language code." });
+        .setFooter({ text: t(guild.id, "invalid_language_footer") });
 
       return interaction.reply({
         embeds: [invalidLanguageEmbed],
@@ -377,14 +370,14 @@ ${availableLanguages}`
 
     const setupSuccessEmbed = new EmbedBuilder()
       .setColor(0x00ff00)
-      .setTitle("✅ Setup Complete!")
+      .setTitle(t(guild.id, "setup_complete_title"))
       .setDescription(
         t(guild.id, "setup_success", {
           channel: afkChannel.name,
           language: selectedLanguage.toUpperCase(),
         })
       )
-      .setFooter({ text: "Configuration saved successfully." });
+      .setFooter({ text: t(guild.id, "setup_success_footer") });
 
     return interaction.reply({
       embeds: [setupSuccessEmbed],
@@ -402,11 +395,9 @@ ${availableLanguages}`
         .join(", ");
       const availableLanguagesEmbed = new EmbedBuilder()
         .setColor(0x0099ff)
-        .setTitle("🌐 Available Languages")
+        .setTitle(t(guild.id, "available_languages_title"))
         .setDescription(availableLanguages)
-        .setFooter({
-          text: "Use /setlang followed by one of the languages above to set the bot language.",
-        })
+        .setFooter({ text: t(guild.id, "available_languages_footer") })
         .setTimestamp();
 
       return interaction.reply({
@@ -422,14 +413,14 @@ ${availableLanguages}`
         .join(", ");
       const invalidLanguageEmbed = new EmbedBuilder()
         .setColor(0xffa500)
-        .setTitle("⚠️ Invalid Language")
+        .setTitle(t(guild.id, "invalid_language_title"))
         .setDescription(
           `${t(guild.id, "invalid_language")}
 
-**Available languages:**
+**${t(guild.id, "available_languages_label")}:**
 ${availableLanguages}`
         )
-        .setFooter({ text: "Please provide a valid language code." });
+        .setFooter({ text: t(guild.id, "invalid_language_footer") });
 
       return interaction.reply({
         embeds: [invalidLanguageEmbed],
@@ -444,13 +435,13 @@ ${availableLanguages}`
 
     const languageSetEmbed = new EmbedBuilder()
       .setColor(0x00ff00)
-      .setTitle("✅ Language Set")
+      .setTitle(t(guild.id, "language_set_title"))
       .setDescription(
         t(guild.id, "language_set", {
           language: selectedLanguage.toUpperCase(),
         })
       )
-      .setFooter({ text: "Language updated successfully." });
+      .setFooter({ text: t(guild.id, "language_set_success_footer") });
 
     return interaction.reply({
       embeds: [languageSetEmbed],
@@ -463,9 +454,9 @@ ${availableLanguages}`
     if (!guildConfig) {
       const noConfigEmbed = new EmbedBuilder()
         .setColor(0xff0000)
-        .setTitle("❌ No Configuration Found")
+        .setTitle(t(guild.id, "no_configuration_found_title"))
         .setDescription(t(guild.id, "no_configuration"))
-        .setFooter({ text: "Use /setup to configure the bot." });
+        .setFooter({ text: t(guild.id, "no_configuration_footer") });
 
       return interaction.reply({
         embeds: [noConfigEmbed],
@@ -476,29 +467,29 @@ ${availableLanguages}`
     // Create embed
     const afkInfoEmbed = new EmbedBuilder()
       .setColor(0x0099ff)
-      .setTitle("ℹ️ AFK Configuration")
+      .setTitle(t(guild.id, "afkinfo_title"))
       .addFields(
         {
-          name: "AFK Channel",
-          value: guildConfig.afkChannelName || "Not configured",
+          name: t(guild.id, "afkinfo_channel"),
+          value: guildConfig.afkChannelName || t(guild.id, "afkinfo_not_set"),
           inline: true,
         },
         {
-          name: "Allowed Roles",
+          name: t(guild.id, "afkinfo_roles"),
           value: guildConfig.allowedRoles?.length
             ? guildConfig.allowedRoles
                 .map((role) => `<@&${role.id}>`)
                 .join(", ")
-            : "No roles configured",
+            : t(guild.id, "afkinfo_no_roles"),
           inline: true,
         },
         {
-          name: "Language",
+          name: t(guild.id, "afkinfo_language"),
           value: guildConfig.language?.toUpperCase() || "EN_US",
           inline: true,
         }
       )
-      .setFooter({ text: "AFK Configuration Details" })
+      .setFooter({ text: t(guild.id, "afkinfo_footer") })
       .setTimestamp();
 
     return interaction.reply({ embeds: [afkInfoEmbed], ephemeral: true });
@@ -512,11 +503,9 @@ ${availableLanguages}`
     if (!afkChannel) {
       const invalidChannelEmbed = new EmbedBuilder()
         .setColor(0xffa500)
-        .setTitle("⚠️ Invalid Channel")
+        .setTitle(t(guild.id, "invalid_channel_title"))
         .setDescription(t(guild.id, "invalid_channel"))
-        .setFooter({
-          text: "Please provide a valid voice channel name or ID.",
-        });
+        .setFooter({ text: t(guild.id, "invalid_channel_footer") });
 
       return interaction.reply({
         embeds: [invalidChannelEmbed],
@@ -532,11 +521,11 @@ ${availableLanguages}`
 
     const afkChannelSetEmbed = new EmbedBuilder()
       .setColor(0x00ff00)
-      .setTitle("✅ AFK Channel Set")
+      .setTitle(t(guild.id, "afk_channel_set_title"))
       .setDescription(
         t(guild.id, "afk_channel_set", { channel: afkChannel.name })
       )
-      .setFooter({ text: "AFK channel updated successfully." });
+      .setFooter({ text: t(guild.id, "afk_channel_set_success_footer") });
 
     return interaction.reply({
       embeds: [afkChannelSetEmbed],
@@ -569,9 +558,9 @@ ${availableLanguages}`
 
     const rolesSetEmbed = new EmbedBuilder()
       .setColor(0x00ff00)
-      .setTitle("✅ Roles Set")
+      .setTitle(t(guild.id, "roles_set_title"))
       .setDescription(t(guild.id, "roles_set"))
-      .setFooter({ text: "Roles updated successfully." });
+      .setFooter({ text: t(guild.id, "roles_set_success_footer") });
 
     return interaction.reply({
       embeds: [rolesSetEmbed],
@@ -602,7 +591,7 @@ client.on("voiceStateUpdate", async (oldState, newState) => {
       await newState.disconnect();
     }
   } catch (error) {
-    console.error("Error handling voice state update:", error);
+    console.error(t(newState.guild.id, "error_voice_state_update"), error);
   }
 });
 
