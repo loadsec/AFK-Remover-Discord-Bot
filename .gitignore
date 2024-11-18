@@ -4,8 +4,8 @@ node_modules/
 # Environment variables
 .env
 
-# Server configuration file
-server_config.json
+# SQLite database
+*.db
 
 # Logs
 *.log
