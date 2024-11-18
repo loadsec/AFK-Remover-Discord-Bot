@@ -429,8 +429,14 @@ client.on("interactionCreate", async (interaction) => {
 
     // Validate language
     if (!translations[selectedLanguage]) {
+      const availableLanguages = Object.keys(translations)
+        .map((lang) => lang.toUpperCase())
+        .join(", ");
       return interaction.reply({
-        content: t(guild.id, "invalid_language"),
+        content: `${t(
+          guild.id,
+          "invalid_language"
+        )} Available languages: ${availableLanguages}`,
         ephemeral: true,
       });
     }
