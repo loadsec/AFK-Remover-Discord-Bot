@@ -15,5 +15,20 @@
   "setup_roles_added": "Roles automatically detected with 'Administrator' permissions: {roles}.",
   "server_data_updated": "Server data updated successfully at {time}.",
   "error_voice_state_update": "An error occurred while handling the voice state update.",
-  "bot_move_permission_missing": "The bot lacks the 'Move Members' permission in the AFK channel."
+  "bot_move_permission_missing": "The bot lacks the 'Move Members' permission in the AFK channel.",
+  "permission_denied_title": "❌ Permission Denied",
+  "permission_denied_footer": "Contact an admin if you believe this is an error.",
+  "setup_complete_title": "✅ Setup Complete!",
+  "setup_success_footer": "Configuration saved successfully.",
+  "available_languages_title": "🌐 Available Languages",
+  "available_languages_footer": "Use /setlang followed by one of the languages above to set the bot language.",
+  "language_set_title": "✅ Language Set",
+  "language_set_success_footer": "Language updated successfully.",
+  "no_configuration_found_title": "❌ No Configuration Found",
+  "no_configuration_footer": "Use /setup to configure the bot.",
+  "afk_channel_set_title": "✅ AFK Channel Set",
+  "afk_channel_set_success_footer": "AFK channel updated successfully.",
+  "roles_set_title": "✅ Roles Set",
+  "roles_set_success_footer": "Roles updated successfully.",
+  "invalid_language": "Invalid language provided. Please refer to the available options below."
 }
