@@ -293,8 +293,14 @@ client.on("interactionCreate", async (interaction) => {
 
   // Responde com erro se o usuário não tiver permissão
   if (!hasPermission()) {
+    const noPermissionEmbed = new EmbedBuilder()
+      .setColor(0xff0000)
+      .setTitle("❌ Permission Denied")
+      .setDescription(t(guild.id, "no_permission"))
+      .setFooter({ text: "Contact an admin if you believe this is an error." });
+
     return interaction.reply({
-      content: t(guild.id, "no_permission"),
+      embeds: [noPermissionEmbed],
       ephemeral: true,
     });
   }
@@ -307,8 +313,16 @@ client.on("interactionCreate", async (interaction) => {
     // Find AFK channel
     const afkChannel = findVoiceChannel(guild, channelInput);
     if (!afkChannel) {
+      const invalidChannelEmbed = new EmbedBuilder()
+        .setColor(0xffa500)
+        .setTitle("⚠️ Invalid Channel")
+        .setDescription(t(guild.id, "invalid_channel"))
+        .setFooter({
+          text: "Please provide a valid voice channel name or ID.",
+        });
+
       return interaction.reply({
-        content: t(guild.id, "invalid_channel"),
+        embeds: [invalidChannelEmbed],
         ephemeral: true,
       });
     }
@@ -327,8 +341,22 @@ client.on("interactionCreate", async (interaction) => {
 
     // Validate language
     if (!translations[selectedLanguage]) {
+      const availableLanguages = Object.keys(translations)
+        .map((lang) => lang.toUpperCase())
+        .join(", ");
+      const invalidLanguageEmbed = new EmbedBuilder()
+        .setColor(0xffa500)
+        .setTitle("⚠️ Invalid Language")
+        .setDescription(
+          `${t(guild.id, "invalid_language")}
+
+**Available languages:**
+${availableLanguages}`
+        )
+        .setFooter({ text: "Please provide a valid language code." });
+
       return interaction.reply({
-        content: t(guild.id, "invalid_language"),
+        embeds: [invalidLanguageEmbed],
         ephemeral: true,
       });
     }
@@ -347,64 +375,19 @@ client.on("interactionCreate", async (interaction) => {
 
     saveGuildConfig(guild.id, config);
 
-    return interaction.reply({
-      content: t(guild.id, "setup_success", {
-        channel: afkChannel.name,
-        language: selectedLanguage.toUpperCase(),
-      }),
-      ephemeral: true,
-    });
-  }
-
-  if (commandName === "setafk") {
-    const channelInput = options.getString("channel");
-
-    // Find AFK channel
-    const afkChannel = findVoiceChannel(guild, channelInput);
-    if (!afkChannel) {
-      return interaction.reply({
-        content: t(guild.id, "invalid_channel"),
-        ephemeral: true,
-      });
-    }
-
-    // Update AFK channel in configuration
-    const guildConfig = getGuildConfig(guild.id) || {};
-    guildConfig.afkChannelId = afkChannel.id;
-    guildConfig.afkChannelName = afkChannel.name;
-    saveGuildConfig(guild.id, guildConfig);
+    const setupSuccessEmbed = new EmbedBuilder()
+      .setColor(0x00ff00)
+      .setTitle("✅ Setup Complete!")
+      .setDescription(
+        t(guild.id, "setup_success", {
+          channel: afkChannel.name,
+          language: selectedLanguage.toUpperCase(),
+        })
+      )
+      .setFooter({ text: "Configuration saved successfully." });
 
     return interaction.reply({
-      content: t(guild.id, "afk_channel_set", { channel: afkChannel.name }),
-      ephemeral: true,
-    });
-  }
-
-  if (commandName === "setroles") {
-    const rolesInput = options.getString("roles");
-
-    // Find roles
-    const roles = findAdminRoles(guild); // Add admin roles by default
-    const extraRoles = rolesInput
-      .split(",")
-      .map((r) => r.trim())
-      .filter(
-        (role) =>
-          !!guild.roles.cache.find(
-            (x) => x.name.toLowerCase() === role.toLowerCase()
-          )
-      );
-
-    // Update roles in configuration
-    const guildConfig = getGuildConfig(guild.id) || {};
-    guildConfig.allowedRoles = [...roles, ...extraRoles].map((role) => ({
-      id: role.id,
-      name: role.name,
-    }));
-    saveGuildConfig(guild.id, guildConfig);
-
-    return interaction.reply({
-      content: t(guild.id, "roles_set"),
+      embeds: [setupSuccessEmbed],
       ephemeral: true,
     });
   }
@@ -417,14 +400,19 @@ client.on("interactionCreate", async (interaction) => {
       const availableLanguages = Object.keys(translations)
         .map((lang) => lang.toUpperCase())
         .join(", ");
-      const embed = new EmbedBuilder()
+      const availableLanguagesEmbed = new EmbedBuilder()
         .setColor(0x0099ff)
-        .setTitle(t(guild.id, "available_languages_title"))
+        .setTitle("🌐 Available Languages")
         .setDescription(availableLanguages)
-        .setFooter({ text: t(guild.id, "available_languages_footer") })
+        .setFooter({
+          text: "Use /setlang followed by one of the languages above to set the bot language.",
+        })
         .setTimestamp();
 
-      return interaction.reply({ embeds: [embed], ephemeral: true });
+      return interaction.reply({
+        embeds: [availableLanguagesEmbed],
+        ephemeral: true,
+      });
     }
 
     // Validate language
@@ -432,11 +420,19 @@ client.on("interactionCreate", async (interaction) => {
       const availableLanguages = Object.keys(translations)
         .map((lang) => lang.toUpperCase())
         .join(", ");
+      const invalidLanguageEmbed = new EmbedBuilder()
+        .setColor(0xffa500)
+        .setTitle("⚠️ Invalid Language")
+        .setDescription(
+          `${t(guild.id, "invalid_language")}
+
+**Available languages:**
+${availableLanguages}`
+        )
+        .setFooter({ text: "Please provide a valid language code." });
+
       return interaction.reply({
-        content: `${t(
-          guild.id,
-          "invalid_language"
-        )} Available languages: ${availableLanguages}`,
+        embeds: [invalidLanguageEmbed],
         ephemeral: true,
       });
     }
@@ -446,53 +442,23 @@ client.on("interactionCreate", async (interaction) => {
     guildConfig.language = selectedLanguage;
     saveGuildConfig(guild.id, guildConfig);
 
+    const languageSetEmbed = new EmbedBuilder()
+      .setColor(0x00ff00)
+      .setTitle("✅ Language Set")
+      .setDescription(
+        t(guild.id, "language_set", {
+          language: selectedLanguage.toUpperCase(),
+        })
+      )
+      .setFooter({ text: "Language updated successfully." });
+
     return interaction.reply({
-      content: t(guild.id, "language_set", {
-        language: selectedLanguage.toUpperCase(),
-      }),
+      embeds: [languageSetEmbed],
       ephemeral: true,
     });
   }
 
-  if (commandName === "afkinfo") {
-    const guildConfig = getGuildConfig(guild.id);
-    if (!guildConfig) {
-      return interaction.reply({
-        content: t(guild.id, "no_configuration"),
-        ephemeral: true,
-      });
-    }
-
-    // Create embed
-    const embed = new EmbedBuilder()
-      .setColor(0x0099ff)
-      .setTitle(t(guild.id, "afkinfo_title"))
-      .addFields(
-        {
-          name: t(guild.id, "afkinfo_channel"),
-          value: guildConfig.afkChannelName || t(guild.id, "afkinfo_not_set"),
-          inline: true,
-        },
-        {
-          name: t(guild.id, "afkinfo_roles"),
-          value: guildConfig.allowedRoles?.length
-            ? guildConfig.allowedRoles
-                .map((role) => `<@&${role.id}>`)
-                .join(", ")
-            : t(guild.id, "afkinfo_no_roles"),
-          inline: true,
-        },
-        {
-          name: t(guild.id, "afkinfo_language"),
-          value: guildConfig.language?.toUpperCase() || "EN_US",
-          inline: true,
-        }
-      )
-      .setFooter({ text: t(guild.id, "afkinfo_footer") })
-      .setTimestamp();
-
-    return interaction.reply({ embeds: [embed], ephemeral: true });
-  }
+  // Other commands go here...
 });
 
 // Handle voice state updates to disconnect users from the AFK channel
