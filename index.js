@@ -326,4 +326,30 @@ client.on("interactionCreate", async (interaction) => {
   }
 });
 
+// Corrigido: Gerenciamento de desconexão no AFK
+client.on("voiceStateUpdate", async (oldState, newState) => {
+  try {
+    const guildConfig = getServerConfig(newState.guild.id);
+    if (!guildConfig || !guildConfig.afkChannelId) return;
+
+    if (newState.channelId === guildConfig.afkChannelId) {
+      if (newState.member.id === client.user.id) return;
+
+      const botPermissions = newState.channel.permissionsFor(
+        newState.guild.members.me
+      );
+      if (!botPermissions.has(PermissionsBitField.Flags.MoveMembers)) {
+        console.warn(
+          `Bot lacks 'Move Members' permission in the AFK channel for guild: ${newState.guild.id}`
+        );
+        return;
+      }
+
+      await newState.disconnect();
+    }
+  } catch (error) {
+    console.error("Error handling voice state update:", error);
+  }
+});
+
 client.login(BOT_TOKEN);
