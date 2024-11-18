@@ -1,0 +1,19 @@
+{
+  "no_permission": "Je hebt geen toestemming om dit commando te gebruiken. Je moet een beheerder zijn of een van de toegestane rollen hebben: {roles}.",
+  "invalid_channel": "Ongeldig kanaal. Vermeld een geldig spraakkanaal.",
+  "invalid_roles": "Ongeldige rollen. Vermeld geldige rollen.",
+  "setup_success": "Instelling voltooid! Het AFK-kanaal is ingesteld op {channel} en de taal op {language}.",
+  "no_configuration": "Er is geen AFK-configuratie gevonden voor deze server.",
+  "afkinfo_title": "AFK Configuratie",
+  "afkinfo_channel": "AFK Kanaal",
+  "afkinfo_roles": "Toegestane Rollen",
+  "afkinfo_language": "Taal",
+  "afkinfo_not_set": "Niet ingesteld",
+  "afkinfo_no_roles": "Geen rollen ingesteld",
+  "afkinfo_footer": "Details van de AFK Configuratie",
+  "language_auto_set": "De taal is automatisch ingesteld op {language} op basis van de serverinstellingen.",
+  "setup_roles_added": "Rollen met 'Beheerder'-rechten automatisch gedetecteerd: {roles}.",
+  "server_data_updated": "Servergegevens succesvol bijgewerkt op {time}.",
+  "error_voice_state_update": "Er is een fout opgetreden bij het verwerken van de update van de stemstatus.",
+  "bot_move_permission_missing": "De bot heeft geen toestemming om 'Leden Verplaatsen' in het AFK-kanaal."
+}

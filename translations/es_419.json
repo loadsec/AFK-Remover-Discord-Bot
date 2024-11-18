@@ -1,0 +1,19 @@
+{
+  "no_permission": "No tienes permiso para usar este comando. Debes ser administrador o tener uno de los roles permitidos: {roles}.",
+  "invalid_channel": "Canal no válido. Por favor, menciona un canal de voz válido.",
+  "invalid_roles": "Roles no válidos. Por favor, menciona roles válidos.",
+  "setup_success": "¡Configuración completa! El canal AFK se ha configurado como {channel} y el idioma como {language}.",
+  "no_configuration": "No se encontró ninguna configuración de AFK para este servidor.",
+  "afkinfo_title": "Configuración de AFK",
+  "afkinfo_channel": "Canal AFK",
+  "afkinfo_roles": "Roles Permitidos",
+  "afkinfo_language": "Idioma",
+  "afkinfo_not_set": "No configurado",
+  "afkinfo_no_roles": "No se han configurado roles",
+  "afkinfo_footer": "Detalles de la Configuración de AFK",
+  "language_auto_set": "El idioma se configuró automáticamente como {language} según la configuración del servidor.",
+  "setup_roles_added": "Se detectaron roles automáticamente con permiso de 'Administrador': {roles}.",
+  "server_data_updated": "Los datos del servidor se actualizaron correctamente a las {time}.",
+  "error_voice_state_update": "Ocurrió un error al procesar la actualización del estado de voz.",
+  "bot_move_permission_missing": "El bot no tiene permiso para 'Mover Miembros' en el canal AFK."
+}

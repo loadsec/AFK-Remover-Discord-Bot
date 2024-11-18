@@ -1,0 +1,19 @@
+{
+  "no_permission": "Nemate dopuštenje za korištenje ove naredbe. Morate biti administrator ili imati jednu od dopuštenih uloga: {roles}.",
+  "invalid_channel": "Nevažeći kanal. Molimo navedite važeći glasovni kanal.",
+  "invalid_roles": "Nevažeće uloge. Molimo navedite važeće uloge.",
+  "setup_success": "Postavljanje je dovršeno! AFK kanal je postavljen na {channel}, a jezik na {language}.",
+  "no_configuration": "AFK konfiguracija nije pronađena za ovaj poslužitelj.",
+  "afkinfo_title": "AFK Konfiguracija",
+  "afkinfo_channel": "AFK Kanal",
+  "afkinfo_roles": "Dopuštene Uloge",
+  "afkinfo_language": "Jezik",
+  "afkinfo_not_set": "Nije postavljeno",
+  "afkinfo_no_roles": "Nijedna uloga nije postavljena",
+  "afkinfo_footer": "Detalji AFK konfiguracije",
+  "language_auto_set": "Jezik je automatski postavljen na {language} na temelju postavki poslužitelja.",
+  "setup_roles_added": "Automatski otkrivene uloge s dozvolom 'Administrator': {roles}.",
+  "server_data_updated": "Podaci o poslužitelju uspješno su ažurirani u {time}.",
+  "error_voice_state_update": "Došlo je do pogreške tijekom obrade ažuriranja stanja glasa.",
+  "bot_move_permission_missing": "Bot nema dopuštenje za 'Premještanje članova' u AFK kanalu."
+}

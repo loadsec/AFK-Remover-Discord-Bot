@@ -1,0 +1,19 @@
+{
+  "no_permission": "Sie haben keine Berechtigung, diesen Befehl zu verwenden. Sie müssen Administrator sein oder eine der erlaubten Rollen haben: {roles}.",
+  "invalid_channel": "Ungültiger Kanal. Bitte geben Sie einen gültigen Sprachkanal an.",
+  "invalid_roles": "Ungültige Rollen. Bitte geben Sie gültige Rollen an.",
+  "setup_success": "Einrichtung abgeschlossen! AFK-Kanal auf {channel} gesetzt und Sprache auf {language} eingestellt.",
+  "no_configuration": "Keine AFK-Konfiguration für diesen Server gefunden.",
+  "afkinfo_title": "AFK-Konfiguration",
+  "afkinfo_channel": "AFK-Kanal",
+  "afkinfo_roles": "Erlaubte Rollen",
+  "afkinfo_language": "Sprache",
+  "afkinfo_not_set": "Nicht konfiguriert",
+  "afkinfo_no_roles": "Keine Rollen konfiguriert",
+  "afkinfo_footer": "Details zur AFK-Konfiguration",
+  "language_auto_set": "Sprache basierend auf den Servereinstellungen automatisch auf {language} gesetzt.",
+  "setup_roles_added": "Rollen mit der Berechtigung 'Administrator' wurden automatisch erkannt: {roles}.",
+  "server_data_updated": "Serverdaten erfolgreich aktualisiert am {time}.",
+  "error_voice_state_update": "Beim Verarbeiten der Voice-State-Aktualisierung ist ein Fehler aufgetreten.",
+  "bot_move_permission_missing": "Der Bot hat keine Berechtigung, Mitglieder im AFK-Kanal zu verschieben."
+}

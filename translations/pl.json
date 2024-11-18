@@ -1,0 +1,19 @@
+{
+  "no_permission": "Nie masz uprawnień do użycia tej komendy. Musisz być administratorem lub mieć jedną z dozwolonych ról: {roles}.",
+  "invalid_channel": "Nieprawidłowy kanał. Proszę podać prawidłowy kanał głosowy.",
+  "invalid_roles": "Nieprawidłowe role. Proszę podać prawidłowe role.",
+  "setup_success": "Konfiguracja zakończona! Kanał AFK został ustawiony na {channel}, a język na {language}.",
+  "no_configuration": "Nie znaleziono konfiguracji AFK dla tego serwera.",
+  "afkinfo_title": "Konfiguracja AFK",
+  "afkinfo_channel": "Kanał AFK",
+  "afkinfo_roles": "Dozwolone Role",
+  "afkinfo_language": "Język",
+  "afkinfo_not_set": "Nie skonfigurowano",
+  "afkinfo_no_roles": "Nie skonfigurowano ról",
+  "afkinfo_footer": "Szczegóły Konfiguracji AFK",
+  "language_auto_set": "Język został automatycznie ustawiony na {language} na podstawie ustawień serwera.",
+  "setup_roles_added": "Wykryto automatycznie role z uprawnieniami 'Administrator': {roles}.",
+  "server_data_updated": "Dane serwera zostały pomyślnie zaktualizowane o {time}.",
+  "error_voice_state_update": "Wystąpił błąd podczas przetwarzania aktualizacji stanu głosu.",
+  "bot_move_permission_missing": "Bot nie ma uprawnień do 'Przenoszenia Użytkowników' w kanale AFK."
+}

@@ -1,0 +1,19 @@
+{
+  "no_permission": "Anda tidak memiliki izin untuk menggunakan perintah ini. Anda harus menjadi Administrator atau memiliki salah satu peran yang diizinkan: {roles}.",
+  "invalid_channel": "Saluran tidak valid. Silakan sebutkan saluran suara yang valid.",
+  "invalid_roles": "Peran tidak valid. Silakan sebutkan peran yang valid.",
+  "setup_success": "Pengaturan selesai! Saluran AFK diatur ke {channel} dan bahasa diatur ke {language}.",
+  "no_configuration": "Konfigurasi AFK tidak ditemukan untuk server ini.",
+  "afkinfo_title": "Konfigurasi AFK",
+  "afkinfo_channel": "Saluran AFK",
+  "afkinfo_roles": "Peran yang Diizinkan",
+  "afkinfo_language": "Bahasa",
+  "afkinfo_not_set": "Belum dikonfigurasi",
+  "afkinfo_no_roles": "Tidak ada peran yang dikonfigurasi",
+  "afkinfo_footer": "Detail Konfigurasi AFK",
+  "language_auto_set": "Bahasa diatur secara otomatis ke {language} berdasarkan pengaturan server.",
+  "setup_roles_added": "Peran yang terdeteksi secara otomatis dengan izin 'Administrator': {roles}.",
+  "server_data_updated": "Data server berhasil diperbarui pada {time}.",
+  "error_voice_state_update": "Terjadi kesalahan saat menangani pembaruan status suara.",
+  "bot_move_permission_missing": "Bot tidak memiliki izin 'Memindahkan Anggota' di saluran AFK."
+}

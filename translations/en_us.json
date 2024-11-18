@@ -1,0 +1,19 @@
+{
+  "no_permission": "You do not have permission to use this command. You must be an Administrator or have one of the allowed roles: {roles}.",
+  "invalid_channel": "Invalid channel. Please mention a valid voice channel.",
+  "invalid_roles": "Invalid roles. Please mention valid roles.",
+  "setup_success": "Setup complete! AFK channel set to {channel} and language set to {language}.",
+  "no_configuration": "No AFK configuration found for this server.",
+  "afkinfo_title": "AFK Configuration",
+  "afkinfo_channel": "AFK Channel",
+  "afkinfo_roles": "Allowed Roles",
+  "afkinfo_language": "Language",
+  "afkinfo_not_set": "Not configured",
+  "afkinfo_no_roles": "No roles configured",
+  "afkinfo_footer": "AFK Configuration Details",
+  "language_auto_set": "Language automatically set to {language} based on server settings.",
+  "setup_roles_added": "Roles automatically detected with 'Administrator' permissions: {roles}.",
+  "server_data_updated": "Server data updated successfully at {time}.",
+  "error_voice_state_update": "An error occurred while handling the voice state update.",
+  "bot_move_permission_missing": "The bot lacks the 'Move Members' permission in the AFK channel."
+}

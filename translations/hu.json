@@ -1,0 +1,19 @@
+{
+  "no_permission": "Nincs jogosultságod ehhez a parancshoz. Adminisztrátornak kell lenned, vagy rendelkezned kell a következő engedélyezett szerepek egyikével: {roles}.",
+  "invalid_channel": "Érvénytelen csatorna. Kérlek, adj meg egy érvényes hangcsatornát.",
+  "invalid_roles": "Érvénytelen szerepek. Kérlek, adj meg érvényes szerepeket.",
+  "setup_success": "Beállítás kész! Az AFK csatorna beállítva erre: {channel}, és a nyelv erre: {language}.",
+  "no_configuration": "Nem található AFK konfiguráció ehhez a szerverhez.",
+  "afkinfo_title": "AFK Konfiguráció",
+  "afkinfo_channel": "AFK Csatorna",
+  "afkinfo_roles": "Engedélyezett Szerepek",
+  "afkinfo_language": "Nyelv",
+  "afkinfo_not_set": "Nincs beállítva",
+  "afkinfo_no_roles": "Nincsenek beállított szerepek",
+  "afkinfo_footer": "AFK Konfiguráció Részletei",
+  "language_auto_set": "A nyelv automatikusan beállítva erre: {language} a szerver beállításai alapján.",
+  "setup_roles_added": "Automatikusan észlelt szerepek 'Adminisztrátor' jogosultsággal: {roles}.",
+  "server_data_updated": "A szerver adatai sikeresen frissítve ekkor: {time}.",
+  "error_voice_state_update": "Hiba történt a hangállapot frissítésének feldolgozása közben.",
+  "bot_move_permission_missing": "A botnak nincs jogosultsága 'Tagok Mozgatása' az AFK csatornában."
+}

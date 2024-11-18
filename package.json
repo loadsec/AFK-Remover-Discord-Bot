@@ -1,0 +1,25 @@
+{
+  "name": "afkremover",
+  "version": "1.0.0",
+  "description": "A Discord bot that disconnects members when they log into an AFK channel, perfect for servers with XP or rewards systems.",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "keywords": [
+    "afk",
+    "remover",
+    "discordjs",
+    "discord",
+    "bot",
+    "voice-channels"
+  ],
+  "author": "LoadSec",
+  "license": "ISC",
+  "dependencies": {
+    "@discordjs/rest": "^2.4.0",
+    "discord.js": "^14.16.3",
+    "dotenv": "^16.4.5"
+  }
+}

@@ -1,0 +1,19 @@
+{
+  "no_permission": "Jūs neturite leidimo naudoti šios komandos. Turite būti administratorius arba turėti vieną iš leidžiamų vaidmenų: {roles}.",
+  "invalid_channel": "Neteisingas kanalas. Prašome nurodyti tinkamą balso kanalą.",
+  "invalid_roles": "Neteisingi vaidmenys. Prašome nurodyti tinkamus vaidmenis.",
+  "setup_success": "Konfigūracija baigta! AFK kanalas nustatytas į {channel}, o kalba nustatyta į {language}.",
+  "no_configuration": "Šiam serveriui AFK konfigūracija nerasta.",
+  "afkinfo_title": "AFK Konfigūracija",
+  "afkinfo_channel": "AFK Kanalo Pavadinimas",
+  "afkinfo_roles": "Leidžiami Vaidmenys",
+  "afkinfo_language": "Kalba",
+  "afkinfo_not_set": "Nesukonfigūruota",
+  "afkinfo_no_roles": "Nesukonfigūruoti vaidmenys",
+  "afkinfo_footer": "AFK Konfigūracijos Detalės",
+  "language_auto_set": "Kalba automatiškai nustatyta į {language} pagal serverio nustatymus.",
+  "setup_roles_added": "Automatiškai aptikti vaidmenys su 'Administratoriaus' teisėmis: {roles}.",
+  "server_data_updated": "Serverio duomenys sėkmingai atnaujinti {time}.",
+  "error_voice_state_update": "Įvyko klaida apdorojant balso būsenos atnaujinimą.",
+  "bot_move_permission_missing": "Botui trūksta leidimo 'Perkelti Narius' AFK kanale."
+}

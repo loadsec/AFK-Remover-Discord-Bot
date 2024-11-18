@@ -1,0 +1,19 @@
+{
+  "no_permission": "Du har ikke tillatelse til å bruke denne kommandoen. Du må være administrator eller ha en av de tillatte rollene: {roles}.",
+  "invalid_channel": "Ugyldig kanal. Vennligst oppgi en gyldig tale-kanal.",
+  "invalid_roles": "Ugyldige roller. Vennligst oppgi gyldige roller.",
+  "setup_success": "Oppsett fullført! AFK-kanalen er satt til {channel}, og språket er satt til {language}.",
+  "no_configuration": "Ingen AFK-konfigurasjon funnet for denne serveren.",
+  "afkinfo_title": "AFK-konfigurasjon",
+  "afkinfo_channel": "AFK-kanal",
+  "afkinfo_roles": "Tillatte roller",
+  "afkinfo_language": "Språk",
+  "afkinfo_not_set": "Ikke konfigurert",
+  "afkinfo_no_roles": "Ingen roller konfigurert",
+  "afkinfo_footer": "Detaljer om AFK-konfigurasjonen",
+  "language_auto_set": "Språket ble automatisk satt til {language} basert på serverens innstillinger.",
+  "setup_roles_added": "Roller med 'Administrator'-tillatelse oppdaget automatisk: {roles}.",
+  "server_data_updated": "Serverdata ble oppdatert vellykket kl {time}.",
+  "error_voice_state_update": "En feil oppstod under behandling av oppdatering av stemmetilstanden.",
+  "bot_move_permission_missing": "Botten har ikke tillatelse til å 'Flytte medlemmer' i AFK-kanalen."
+}
