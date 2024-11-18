@@ -7,6 +7,7 @@ const {
   Routes,
   EmbedBuilder,
   PermissionsBitField,
+  ActivityType,
 } = require("discord.js");
 const Database = require("better-sqlite3");
 require("dotenv").config();
@@ -103,6 +104,9 @@ client.once("ready", () => {
   console.log(`Bot is running as ${client.user.tag}`);
   updateServerData(); // Perform the first update immediately
   setInterval(updateServerData, 5 * 60 * 1000); // Update every 5 minutes
+
+  // Set bot activity to show it is listening to /setup
+  client.user.setActivity("/setup", { type: ActivityType.Listening });
 });
 
 // Helper function to get the current time in Brasília (UTC-3)
