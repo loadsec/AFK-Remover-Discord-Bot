@@ -34,7 +34,7 @@ db.prepare(
 ).run();
 
 // Translation files
-const TRANSLATIONS_DIR = "./translations"; // Directory for translation files
+const TRANSLATIONS_DIR = "./translations";
 
 // Load translations
 const translations = {};
@@ -83,58 +83,6 @@ function getBrasiliaTime() {
   return formatter.format(new Date());
 }
 
-// Register slash commands
-const rest = new REST({ version: "10" }).setToken(BOT_TOKEN);
-
-(async () => {
-  try {
-    console.log("Registering slash commands...");
-
-    const commands = [
-      {
-        name: "setup",
-        description: "Set up the AFK channel, roles, and language for the bot.",
-        options: [
-          {
-            name: "channel",
-            description: "The voice channel to set as AFK (name or ID).",
-            type: 3, // STRING
-            required: true,
-          },
-          {
-            name: "roles",
-            description:
-              "Mention the roles allowed to configure the bot (comma-separated IDs or names).",
-            type: 3, // STRING
-            required: true,
-          },
-          {
-            name: "language",
-            description: "Select the language for this server.",
-            type: 3, // STRING
-            required: true,
-            choices: Object.keys(translations).map((lang) => ({
-              name: lang.toUpperCase(),
-              value: lang,
-            })),
-          },
-        ],
-      },
-      {
-        name: "afkinfo",
-        description:
-          "Displays the current AFK channel, roles, and language configuration.",
-      },
-    ];
-
-    await rest.put(Routes.applicationCommands(CLIENT_ID), { body: commands });
-
-    console.log("Slash commands registered successfully!");
-  } catch (error) {
-    console.error("Error registering commands:", error);
-  }
-})();
-
 // SQLite helpers
 function getServerConfig(serverId) {
   return db
@@ -166,28 +114,23 @@ function saveServerConfig(serverId, config) {
   );
 }
 
-// Update server data periodically
+// Periodic update function
 async function updateServerData() {
-  client.guilds.cache.forEach((guild) => {
+  client.guilds.cache.forEach(async (guild) => {
     const serverConfig = getServerConfig(guild.id) || {};
     serverConfig.serverName = guild.name;
 
-    // Detect admin roles
-    const adminRoles = guild.roles.cache
-      .filter(
-        (role) =>
-          role.permissions.has(PermissionsBitField.Flags.Administrator) &&
-          !role.managed
-      )
-      .map((role) => ({ id: role.id, name: role.name }));
+    // Detect preferred locale for language
+    const locale = guild.preferredLocale.toLowerCase().replace("-", "_");
+    serverConfig.language = translations[locale] ? locale : "en_us";
 
-    serverConfig.allowedRoles = adminRoles;
-
-    // Detect AFK channel
-    const afkChannel = guild.channels.cache.get(guild.afkChannelId);
-    if (afkChannel) {
-      serverConfig.afkChannelId = afkChannel.id;
-      serverConfig.afkChannelName = afkChannel.name;
+    // Check native AFK channel
+    if (guild.afkChannelId) {
+      const afkChannel = guild.channels.cache.get(guild.afkChannelId);
+      if (afkChannel) {
+        serverConfig.afkChannelId = afkChannel.id;
+        serverConfig.afkChannelName = afkChannel.name;
+      }
     }
 
     // Save updated configuration
@@ -197,12 +140,66 @@ async function updateServerData() {
   console.log(`Server data updated at ${getBrasiliaTime()}`);
 }
 
-client.on("ready", () => {
+// Event listener for bot readiness
+client.once("ready", () => {
   console.log(`Bot is running as ${client.user.tag}`);
   updateServerData(); // Perform the first update immediately
   setInterval(updateServerData, 5 * 60 * 1000); // Update every 5 minutes
 });
 
+// Slash commands registration
+const rest = new REST({ version: "10" }).setToken(BOT_TOKEN);
+
+(async () => {
+  try {
+    console.log("Registering slash commands...");
+
+    const commands = [
+      {
+        name: "setup",
+        description: "Set up the AFK channel, roles, and language for the bot.",
+        options: [
+          {
+            name: "channel",
+            description: "The voice channel to set as AFK (name or ID).",
+            type: 3,
+            required: true,
+          },
+          {
+            name: "roles",
+            description:
+              "Mention the roles allowed to configure the bot (comma-separated IDs or names).",
+            type: 3,
+            required: true,
+          },
+          {
+            name: "language",
+            description: "Select the language for this server.",
+            type: 3,
+            required: true,
+            choices: Object.keys(translations).map((lang) => ({
+              name: lang.toUpperCase(),
+              value: lang,
+            })),
+          },
+        ],
+      },
+      {
+        name: "afkinfo",
+        description:
+          "Displays the current AFK channel, roles, and language configuration.",
+      },
+    ];
+
+    await rest.put(Routes.applicationCommands(CLIENT_ID), { body: commands });
+
+    console.log("Slash commands registered successfully!");
+  } catch (error) {
+    console.error("Error registering commands:", error);
+  }
+})();
+
+// Interaction handling
 client.on("interactionCreate", async (interaction) => {
   if (!interaction.isChatInputCommand()) return;
 
@@ -246,32 +243,12 @@ client.on("interactionCreate", async (interaction) => {
       });
     }
 
-    const extraRoles = rolesInput
-      .split(",")
-      .map((r) => r.trim())
-      .filter(
-        (role) =>
-          !!guild.roles.cache.find(
-            (x) => x.name.toLowerCase() === role.toLowerCase()
-          )
-      );
-
-    const adminRoles = guild.roles.cache
-      .filter(
-        (role) =>
-          role.permissions.has(PermissionsBitField.Flags.Administrator) &&
-          !role.managed
-      )
-      .map((role) => ({ id: role.id, name: role.name }));
-
+    const roles = rolesInput.split(",").map((role) => role.trim());
     const config = {
       serverName: guild.name,
       afkChannelId: afkChannel.id,
       afkChannelName: afkChannel.name,
-      allowedRoles: [...adminRoles, ...extraRoles].map((role) => ({
-        id: role.id,
-        name: role.name,
-      })),
+      allowedRoles: roles.map((role) => ({ id: role.id, name: role.name })),
       language: selectedLanguage,
     };
 
@@ -306,11 +283,10 @@ client.on("interactionCreate", async (interaction) => {
         },
         {
           name: t(guild.id, "afkinfo_roles"),
-          value: JSON.parse(serverConfig.allowedRoles || "[]").length
-            ? JSON.parse(serverConfig.allowedRoles)
-                .map((role) => `<@&${role.id}>`)
-                .join(", ")
-            : t(guild.id, "afkinfo_no_roles"),
+          value:
+            JSON.parse(serverConfig.allowedRoles || "[]")
+              .map((role) => `<@&${role.id}>`)
+              .join(", ") || t(guild.id, "afkinfo_no_roles"),
           inline: true,
         },
         {
@@ -326,7 +302,7 @@ client.on("interactionCreate", async (interaction) => {
   }
 });
 
-// Corrigido: Gerenciamento de desconexão no AFK
+// Voice state update handler
 client.on("voiceStateUpdate", async (oldState, newState) => {
   try {
     const guildConfig = getServerConfig(newState.guild.id);
