@@ -192,7 +192,7 @@ const rest = new REST({ version: "10" }).setToken(BOT_TOKEN);
             description:
               "Enter the language for this server (e.g., en_us, pt_br).",
             type: 3, // STRING
-            required: true,
+            required: false,
           },
         ],
       },
@@ -411,6 +411,21 @@ client.on("interactionCreate", async (interaction) => {
 
   if (commandName === "setlang") {
     const selectedLanguage = options.getString("language");
+
+    // If no language is provided, show available languages
+    if (!selectedLanguage) {
+      const availableLanguages = Object.keys(translations)
+        .map((lang) => lang.toUpperCase())
+        .join(", ");
+      const embed = new EmbedBuilder()
+        .setColor(0x0099ff)
+        .setTitle(t(guild.id, "available_languages_title"))
+        .setDescription(availableLanguages)
+        .setFooter({ text: t(guild.id, "available_languages_footer") })
+        .setTimestamp();
+
+      return interaction.reply({ embeds: [embed], ephemeral: true });
+    }
 
     // Validate language
     if (!translations[selectedLanguage]) {
