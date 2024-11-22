@@ -1,5 +1,3 @@
-// Updated code to ensure members in the AFK channel are always disconnected and add new functionality to move muted and deafened members to the AFK channel after 5 minutes.
-
 const fs = require("fs");
 const path = require("path");
 const {
@@ -19,7 +17,6 @@ const BOT_TOKEN = process.env.BOT_TOKEN;
 const CLIENT_ID = process.env.CLIENT_ID;
 
 // SQLite database setup
-// Setting up a SQLite database to store guild (server) configuration information
 const db = new Database("server_config.db");
 db.exec(`
   CREATE TABLE IF NOT EXISTS guilds (
@@ -33,7 +30,6 @@ db.exec(`
 `);
 
 // Helper function to save guild config to SQLite
-// This function saves or updates the configuration of a guild in the database
 function saveGuildConfig(guildId, config) {
   const stmt = db.prepare(`
     INSERT INTO guilds (guild_id, server_name, afk_channel_id, afk_channel_name, allowed_roles, language)
@@ -56,7 +52,6 @@ function saveGuildConfig(guildId, config) {
 }
 
 // Helper function to get guild config from SQLite
-// This function retrieves the configuration of a guild from the database
 function getGuildConfig(guildId) {
   const stmt = db.prepare("SELECT * FROM guilds WHERE guild_id = ?");
   const row = stmt.get(guildId);
@@ -73,7 +68,6 @@ function getGuildConfig(guildId) {
 }
 
 // Load translations from the translations directory
-// This function loads translation files for different languages
 const TRANSLATIONS_DIR = "./translations";
 const translations = {};
 function loadTranslations() {
@@ -91,7 +85,6 @@ function loadTranslations() {
 loadTranslations();
 
 // Translation helper function
-// This function returns the appropriate translation for a given key, based on the guild's language
 function t(guildId, key, placeholders = {}) {
   const lang = getGuildConfig(guildId)?.language || "en_us";
   let text = translations[lang]?.[key] || translations["en_us"]?.[key] || key;
@@ -103,12 +96,10 @@ function t(guildId, key, placeholders = {}) {
   return text;
 }
 
-// Create a new Discord client instance
 const client = new Client({
   intents: [GatewayIntentBits.Guilds, GatewayIntentBits.GuildVoiceStates],
 });
 
-// Event listener for when the bot is ready
 client.once("ready", () => {
   console.log(`Bot is running as ${client.user.tag}`);
   updateServerData(); // Perform the first update immediately
@@ -119,7 +110,6 @@ client.once("ready", () => {
 });
 
 // Helper function to get the current time in Brasília (UTC-3)
-// Returns the current time formatted for Brasília timezone
 function getBrasiliaTime() {
   const formatter = new Intl.DateTimeFormat("pt-BR", {
     timeZone: "America/Sao_Paulo",
@@ -133,55 +123,58 @@ function getBrasiliaTime() {
   return formatter.format(new Date());
 }
 
-// Periodically update server data, including default admin roles and native AFK channel
-// Updates the configuration for each guild that the bot is in
-async function updateServerData() {
-  client.guilds.cache.forEach(async (guild) => {
-    try {
-      const guildConfig = getGuildConfig(guild.id) || {};
-      guildConfig.serverName = guild.name;
+// Register slash commands
+const rest = new REST({ version: "10" }).setToken(BOT_TOKEN);
 
-      // Detect admin roles
-      const adminRoles = findAdminRoles(guild);
-      guildConfig.allowedRoles = adminRoles;
+(async () => {
+  try {
+    console.log("Registering slash commands...");
 
-      // Detect preferred locale for language
-      const locale = guild.preferredLocale.toLowerCase().replace("-", "_"); // Convert pt-BR to pt_br
-      if (translations[locale]) {
-        guildConfig.language = locale;
-      } else {
-        guildConfig.language = "en_us"; // Default to en_us
-      }
+    const commands = [
+      {
+        name: "setup",
+        description: t(null, "setup_description"),
+        options: [
+          {
+            name: "channel",
+            description: t(null, "setup_channel_description"),
+            type: 3, // STRING
+            required: true,
+          },
+          {
+            name: "roles",
+            description: t(null, "setup_roles_description"),
+            type: 3, // STRING
+            required: true,
+          },
+          {
+            name: "language",
+            description: t(null, "setup_language_description"),
+            type: 3, // STRING
+            required: true,
+          },
+        ],
+      },
+    ];
 
-      // Check native AFK channel
-      const afkChannelId = guild.afkChannelId;
-      if (afkChannelId) {
-        const afkChannel = guild.channels.cache.get(afkChannelId);
-        if (afkChannel) {
-          guildConfig.afkChannelId = afkChannel.id;
-          guildConfig.afkChannelName = afkChannel.name;
-        }
-      }
+    await rest.put(Routes.applicationCommands(CLIENT_ID), { body: commands });
 
-      // Save updated config
-      saveGuildConfig(guild.id, guildConfig);
-    } catch (error) {
-      console.error(`Error updating server data for guild ${guild.id}:`, error);
-    }
-  });
+    console.log("Slash commands registered successfully!");
+  } catch (error) {
+    console.error("Error registering commands:", error);
+  }
+})();
 
-  console.log(t(null, "server_data_updated", { time: getBrasiliaTime() }));
-}
-
-// Handle voice state updates to disconnect users from the AFK channel
-// This function handles the logic to disconnect users from the AFK channel irrespective of mute status
+// Handle voice state updates to move users to AFK channel and disconnect if necessary
 client.on("voiceStateUpdate", async (oldState, newState) => {
   try {
     const guildConfig = getGuildConfig(newState.guild.id);
     if (!guildConfig || !guildConfig.afkChannelId) return;
 
+    const afkChannelId = guildConfig.afkChannelId;
+
     // Check if the user joined the configured AFK channel
-    if (newState.channelId === guildConfig.afkChannelId) {
+    if (newState.channelId === afkChannelId) {
       if (newState.member.id === client.user.id) return; // Ignore the bot itself
 
       // Check bot permissions in the channel
@@ -193,75 +186,32 @@ client.on("voiceStateUpdate", async (oldState, newState) => {
         return;
       }
 
-      // Disconnect the user from the AFK channel
+      // Disconnect the user
       await newState.disconnect();
     }
-  } catch (error) {
-    console.error(t(newState.guild.id, "error_voice_state_update"), error);
-  }
-});
 
-// New function to move users with both mic and audio muted for more than 5 minutes to AFK channel
-const usersToAfkTimeout = new Map(); // Store timeout IDs for users
-client.on("voiceStateUpdate", async (oldState, newState) => {
-  try {
-    const guildConfig = getGuildConfig(newState.guild.id);
-    if (!guildConfig || !guildConfig.afkChannelId) return;
-
-    // Move users to AFK channel if both audio and microphone are muted for more than 5 minutes
+    // Check if the user is in a voice channel, muted, and deafened for more than 5 minutes
     if (
       newState.channelId &&
-      newState.channelId !== guildConfig.afkChannelId &&
+      newState.channelId !== afkChannelId &&
       newState.selfMute &&
       newState.selfDeaf
     ) {
-      // If user wasn't muted previously or changed state, start/reset the timer
-      if (
-        !oldState.selfMute ||
-        !oldState.selfDeaf ||
-        oldState.channelId !== newState.channelId
-      ) {
-        // Clear any existing timeout for this user
-        if (usersToAfkTimeout.has(newState.id)) {
-          clearTimeout(usersToAfkTimeout.get(newState.id));
+      setTimeout(async () => {
+        const member = await newState.guild.members.fetch(newState.id);
+        if (
+          member.voice.channelId === newState.channelId &&
+          member.voice.selfMute &&
+          member.voice.selfDeaf
+        ) {
+          // Move user to AFK channel
+          await member.voice.setChannel(afkChannelId);
         }
-
-        // Set a new timeout to move the user to AFK channel after 5 minutes
-        const timeoutId = setTimeout(async () => {
-          const currentState = newState.guild.members.cache.get(
-            newState.id
-          )?.voice;
-          if (
-            currentState &&
-            currentState.selfMute &&
-            currentState.selfDeaf &&
-            currentState.channelId !== guildConfig.afkChannelId
-          ) {
-            // Move user to AFK channel
-            await currentState.setChannel(guildConfig.afkChannelId);
-            console.log(
-              t(newState.guild.id, "user_moved_to_afk", {
-                user: currentState.member.user.tag,
-              })
-            );
-          }
-          usersToAfkTimeout.delete(newState.id); // Remove from the map after moving
-        }, 5 * 60 * 1000);
-
-        // Store the timeout ID so it can be cleared if needed
-        usersToAfkTimeout.set(newState.id, timeoutId);
-      }
-    } else {
-      // If the user is no longer muted or deafened, clear the timeout
-      if (usersToAfkTimeout.has(newState.id)) {
-        clearTimeout(usersToAfkTimeout.get(newState.id));
-        usersToAfkTimeout.delete(newState.id);
-      }
+      }, 5 * 60 * 1000); // 5 minutes in milliseconds
     }
   } catch (error) {
     console.error(t(newState.guild.id, "error_voice_state_update"), error);
   }
 });
 
-// Log in to Discord with the bot token
 client.login(BOT_TOKEN);
