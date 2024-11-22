@@ -187,7 +187,11 @@ client.on("voiceStateUpdate", async (oldState, newState) => {
       }
 
       // Disconnect the user
-      await newState.disconnect();
+      await newState.member.voice.disconnect();
+      console.log(
+        `User ${newState.member.user.tag} was disconnected from the AFK channel.`
+      );
+      return;
     }
 
     // Check if the user is in a voice channel, muted, and deafened for more than 5 minutes
@@ -206,6 +210,7 @@ client.on("voiceStateUpdate", async (oldState, newState) => {
         ) {
           // Move user to AFK channel
           await member.voice.setChannel(afkChannelId);
+          console.log(`User ${member.user.tag} was moved to the AFK channel.`);
         }
       }, 5 * 60 * 1000); // 5 minutes in milliseconds
     }
