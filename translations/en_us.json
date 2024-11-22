@@ -48,5 +48,9 @@
   "available_languages_label": "Available Languages",
   "invalid_language_footer": "Please provide a valid language code.",
   "language_set": "Language has been set to {language}.",
-  "afk_channel_set": "AFK channel has been set to {channel}."
+  "afk_channel_set": "AFK channel has been set to {channel}.",
+  "user_moved_to_afk": "User {user} has been moved to the AFK channel due to inactivity.",
+  "mute_detected": "User {user} has been detected as muted and deafened. Moving to AFK channel in 5 minutes if status persists.",
+  "afk_move_in_progress": "Moving user {user} to AFK channel now.",
+  "afk_move_failed": "Failed to move user {user} to the AFK channel."
 }

@@ -17,6 +17,7 @@ const BOT_TOKEN = process.env.BOT_TOKEN;
 const CLIENT_ID = process.env.CLIENT_ID;
 
 // SQLite database setup
+// Setting up a SQLite database to store guild (server) configuration information
 const db = new Database("server_config.db");
 db.exec(`
   CREATE TABLE IF NOT EXISTS guilds (
@@ -30,6 +31,7 @@ db.exec(`
 `);
 
 // Helper function to save guild config to SQLite
+// This function saves or updates the configuration of a guild in the database
 function saveGuildConfig(guildId, config) {
   const stmt = db.prepare(`
     INSERT INTO guilds (guild_id, server_name, afk_channel_id, afk_channel_name, allowed_roles, language)
@@ -52,6 +54,7 @@ function saveGuildConfig(guildId, config) {
 }
 
 // Helper function to get guild config from SQLite
+// This function retrieves the configuration of a guild from the database
 function getGuildConfig(guildId) {
   const stmt = db.prepare("SELECT * FROM guilds WHERE guild_id = ?");
   const row = stmt.get(guildId);
@@ -68,6 +71,7 @@ function getGuildConfig(guildId) {
 }
 
 // Load translations from the translations directory
+// This function loads translation files for different languages
 const TRANSLATIONS_DIR = "./translations";
 const translations = {};
 function loadTranslations() {
@@ -85,6 +89,7 @@ function loadTranslations() {
 loadTranslations();
 
 // Translation helper function
+// This function returns the appropriate translation for a given key, based on the guild's language
 function t(guildId, key, placeholders = {}) {
   const lang = getGuildConfig(guildId)?.language || "en_us";
   let text = translations[lang]?.[key] || translations["en_us"]?.[key] || key;
@@ -96,10 +101,12 @@ function t(guildId, key, placeholders = {}) {
   return text;
 }
 
+// Create a new Discord client instance
 const client = new Client({
   intents: [GatewayIntentBits.Guilds, GatewayIntentBits.GuildVoiceStates],
 });
 
+// Event listener for when the bot is ready
 client.once("ready", () => {
   console.log(`Bot is running as ${client.user.tag}`);
   updateServerData(); // Perform the first update immediately
@@ -110,6 +117,7 @@ client.once("ready", () => {
 });
 
 // Helper function to get the current time in Brasília (UTC-3)
+// Returns the current time formatted for Brasília timezone
 function getBrasiliaTime() {
   const formatter = new Intl.DateTimeFormat("pt-BR", {
     timeZone: "America/Sao_Paulo",
@@ -123,110 +131,8 @@ function getBrasiliaTime() {
   return formatter.format(new Date());
 }
 
-// Register slash commands
-const rest = new REST({ version: "10" }).setToken(BOT_TOKEN);
-
-(async () => {
-  try {
-    console.log("Registering slash commands...");
-
-    const commands = [
-      {
-        name: "setup",
-        description: t(null, "setup_description"),
-        options: [
-          {
-            name: "channel",
-            description: t(null, "setup_channel_description"),
-            type: 3, // STRING
-            required: true,
-          },
-          {
-            name: "roles",
-            description: t(null, "setup_roles_description"),
-            type: 3, // STRING
-            required: true,
-          },
-          {
-            name: "language",
-            description: t(null, "setup_language_description"),
-            type: 3, // STRING
-            required: true,
-          },
-        ],
-      },
-      {
-        name: "afkinfo",
-        description: t(null, "afkinfo_description"),
-      },
-      {
-        name: "setafk",
-        description: t(null, "setafk_description"),
-        options: [
-          {
-            name: "channel",
-            description: t(null, "setafk_channel_description"),
-            type: 3, // STRING
-            required: true,
-          },
-        ],
-      },
-      {
-        name: "setroles",
-        description: t(null, "setroles_description"),
-        options: [
-          {
-            name: "roles",
-            description: t(null, "setroles_roles_description"),
-            type: 3, // STRING
-            required: true,
-          },
-        ],
-      },
-      {
-        name: "setlang",
-        description: t(null, "setlang_description"),
-        options: [
-          {
-            name: "language",
-            description: t(null, "setlang_language_description"),
-            type: 3, // STRING
-            required: false,
-          },
-        ],
-      },
-    ];
-
-    await rest.put(Routes.applicationCommands(CLIENT_ID), { body: commands });
-
-    console.log("Slash commands registered successfully!");
-  } catch (error) {
-    console.error("Error registering commands:", error);
-  }
-})();
-
-// Helper function to find a voice channel by name or ID
-function findVoiceChannel(guild, input) {
-  return guild.channels.cache.find(
-    (channel) =>
-      channel.type === 2 && // Ensure it's a voice channel
-      (channel.name.toLowerCase() === input.toLowerCase() ||
-        channel.id === input)
-  );
-}
-
-// Helper function to find roles with "Administrator" permission
-function findAdminRoles(guild) {
-  return guild.roles.cache
-    .filter(
-      (role) =>
-        role.permissions.has(PermissionsBitField.Flags.Administrator) &&
-        !role.managed
-    )
-    .map((role) => ({ id: role.id, name: role.name }));
-}
-
 // Periodically update server data, including default admin roles and native AFK channel
+// Updates the configuration for each guild that the bot is in
 async function updateServerData() {
   client.guilds.cache.forEach(async (guild) => {
     try {
@@ -265,315 +171,8 @@ async function updateServerData() {
   console.log(t(null, "server_data_updated", { time: getBrasiliaTime() }));
 }
 
-// Handle interaction commands
-client.on("interactionCreate", async (interaction) => {
-  if (!interaction.isChatInputCommand()) return;
-
-  const { commandName, options, guild, member } = interaction;
-
-  // Verifica se o membro tem permissão para executar o comando
-  const hasPermission = () => {
-    const guildConfig = getGuildConfig(guild.id);
-    if (!guildConfig) return false;
-
-    // Verifica se o membro é administrador
-    if (member.permissions.has(PermissionsBitField.Flags.Administrator))
-      return true;
-
-    // Verifica se o membro tem um dos cargos configurados
-    if (guildConfig.allowedRoles?.length) {
-      return guildConfig.allowedRoles.some((role) =>
-        member.roles.cache.has(role.id)
-      );
-    }
-
-    return false;
-  };
-
-  // Responde com erro se o usuário não tiver permissão
-  if (!hasPermission()) {
-    const noPermissionEmbed = new EmbedBuilder()
-      .setColor(0xff0000)
-      .setTitle(t(guild.id, "permission_denied_title"))
-      .setDescription(t(guild.id, "no_permission"))
-      .setFooter({ text: t(guild.id, "permission_denied_footer") });
-
-    return interaction.reply({
-      embeds: [noPermissionEmbed],
-      ephemeral: true,
-    });
-  }
-
-  if (commandName === "setup") {
-    const channelInput = options.getString("channel");
-    const rolesInput = options.getString("roles");
-    const selectedLanguage = options.getString("language");
-
-    // Find AFK channel
-    const afkChannel = findVoiceChannel(guild, channelInput);
-    if (!afkChannel) {
-      const invalidChannelEmbed = new EmbedBuilder()
-        .setColor(0xffa500)
-        .setTitle(t(guild.id, "invalid_channel_title"))
-        .setDescription(t(guild.id, "invalid_channel"))
-        .setFooter({ text: t(guild.id, "invalid_channel_footer") });
-
-      return interaction.reply({
-        embeds: [invalidChannelEmbed],
-        ephemeral: true,
-      });
-    }
-
-    // Find roles
-    const roles = findAdminRoles(guild); // Add admin roles by default
-    const extraRoles = rolesInput
-      .split(",")
-      .map((r) => r.trim())
-      .filter(
-        (role) =>
-          !!guild.roles.cache.find(
-            (x) => x.name.toLowerCase() === role.toLowerCase()
-          )
-      );
-
-    // Validate language
-    if (!translations[selectedLanguage]) {
-      const availableLanguages = Object.keys(translations)
-        .map((lang) => lang.toUpperCase())
-        .join(", ");
-      const invalidLanguageEmbed = new EmbedBuilder()
-        .setColor(0xffa500)
-        .setTitle(t(guild.id, "invalid_language_title"))
-        .setDescription(
-          `${t(guild.id, "invalid_language")}
-
-**${t(guild.id, "available_languages_label")}:**
-${availableLanguages}`
-        )
-        .setFooter({ text: t(guild.id, "invalid_language_footer") });
-
-      return interaction.reply({
-        embeds: [invalidLanguageEmbed],
-        ephemeral: true,
-      });
-    }
-
-    // Save configuration
-    const config = {
-      serverName: guild.name,
-      afkChannelId: afkChannel.id,
-      afkChannelName: afkChannel.name,
-      allowedRoles: [...roles, ...extraRoles].map((role) => ({
-        id: role.id,
-        name: role.name,
-      })),
-      language: selectedLanguage,
-    };
-
-    saveGuildConfig(guild.id, config);
-
-    const setupSuccessEmbed = new EmbedBuilder()
-      .setColor(0x00ff00)
-      .setTitle(t(guild.id, "setup_complete_title"))
-      .setDescription(
-        t(guild.id, "setup_success", {
-          channel: afkChannel.name,
-          language: selectedLanguage.toUpperCase(),
-        })
-      )
-      .setFooter({ text: t(guild.id, "setup_success_footer") });
-
-    return interaction.reply({
-      embeds: [setupSuccessEmbed],
-      ephemeral: true,
-    });
-  }
-
-  if (commandName === "setlang") {
-    const selectedLanguage = options.getString("language");
-
-    // If no language is provided, show available languages
-    if (!selectedLanguage) {
-      const availableLanguages = Object.keys(translations)
-        .map((lang) => lang.toUpperCase())
-        .join(", ");
-      const availableLanguagesEmbed = new EmbedBuilder()
-        .setColor(0x0099ff)
-        .setTitle(t(guild.id, "available_languages_title"))
-        .setDescription(availableLanguages)
-        .setFooter({ text: t(guild.id, "available_languages_footer") })
-        .setTimestamp();
-
-      return interaction.reply({
-        embeds: [availableLanguagesEmbed],
-        ephemeral: true,
-      });
-    }
-
-    // Validate language
-    if (!translations[selectedLanguage]) {
-      const availableLanguages = Object.keys(translations)
-        .map((lang) => lang.toUpperCase())
-        .join(", ");
-      const invalidLanguageEmbed = new EmbedBuilder()
-        .setColor(0xffa500)
-        .setTitle(t(guild.id, "invalid_language_title"))
-        .setDescription(
-          `${t(guild.id, "invalid_language")}
-
-**${t(guild.id, "available_languages_label")}:**
-${availableLanguages}`
-        )
-        .setFooter({ text: t(guild.id, "invalid_language_footer") });
-
-      return interaction.reply({
-        embeds: [invalidLanguageEmbed],
-        ephemeral: true,
-      });
-    }
-
-    // Update language in configuration
-    const guildConfig = getGuildConfig(guild.id) || {};
-    guildConfig.language = selectedLanguage;
-    saveGuildConfig(guild.id, guildConfig);
-
-    const languageSetEmbed = new EmbedBuilder()
-      .setColor(0x00ff00)
-      .setTitle(t(guild.id, "language_set_title"))
-      .setDescription(
-        t(guild.id, "language_set", {
-          language: selectedLanguage.toUpperCase(),
-        })
-      )
-      .setFooter({ text: t(guild.id, "language_set_success_footer") });
-
-    return interaction.reply({
-      embeds: [languageSetEmbed],
-      ephemeral: true,
-    });
-  }
-
-  if (commandName === "afkinfo") {
-    const guildConfig = getGuildConfig(guild.id);
-    if (!guildConfig) {
-      const noConfigEmbed = new EmbedBuilder()
-        .setColor(0xff0000)
-        .setTitle(t(guild.id, "no_configuration_found_title"))
-        .setDescription(t(guild.id, "no_configuration"))
-        .setFooter({ text: t(guild.id, "no_configuration_footer") });
-
-      return interaction.reply({
-        embeds: [noConfigEmbed],
-        ephemeral: true,
-      });
-    }
-
-    // Create embed
-    const afkInfoEmbed = new EmbedBuilder()
-      .setColor(0x0099ff)
-      .setTitle(t(guild.id, "afkinfo_title"))
-      .addFields(
-        {
-          name: t(guild.id, "afkinfo_channel"),
-          value: guildConfig.afkChannelName || t(guild.id, "afkinfo_not_set"),
-          inline: true,
-        },
-        {
-          name: t(guild.id, "afkinfo_roles"),
-          value: guildConfig.allowedRoles?.length
-            ? guildConfig.allowedRoles
-                .map((role) => `<@&${role.id}>`)
-                .join(", ")
-            : t(guild.id, "afkinfo_no_roles"),
-          inline: true,
-        },
-        {
-          name: t(guild.id, "afkinfo_language"),
-          value: guildConfig.language?.toUpperCase() || "EN_US",
-          inline: true,
-        }
-      )
-      .setFooter({ text: t(guild.id, "afkinfo_footer") })
-      .setTimestamp();
-
-    return interaction.reply({ embeds: [afkInfoEmbed], ephemeral: true });
-  }
-
-  if (commandName === "setafk") {
-    const channelInput = options.getString("channel");
-
-    // Find AFK channel
-    const afkChannel = findVoiceChannel(guild, channelInput);
-    if (!afkChannel) {
-      const invalidChannelEmbed = new EmbedBuilder()
-        .setColor(0xffa500)
-        .setTitle(t(guild.id, "invalid_channel_title"))
-        .setDescription(t(guild.id, "invalid_channel"))
-        .setFooter({ text: t(guild.id, "invalid_channel_footer") });
-
-      return interaction.reply({
-        embeds: [invalidChannelEmbed],
-        ephemeral: true,
-      });
-    }
-
-    // Update AFK channel in configuration
-    const guildConfig = getGuildConfig(guild.id) || {};
-    guildConfig.afkChannelId = afkChannel.id;
-    guildConfig.afkChannelName = afkChannel.name;
-    saveGuildConfig(guild.id, guildConfig);
-
-    const afkChannelSetEmbed = new EmbedBuilder()
-      .setColor(0x00ff00)
-      .setTitle(t(guild.id, "afk_channel_set_title"))
-      .setDescription(
-        t(guild.id, "afk_channel_set", { channel: afkChannel.name })
-      )
-      .setFooter({ text: t(guild.id, "afk_channel_set_success_footer") });
-
-    return interaction.reply({
-      embeds: [afkChannelSetEmbed],
-      ephemeral: true,
-    });
-  }
-
-  if (commandName === "setroles") {
-    const rolesInput = options.getString("roles");
-
-    // Find roles
-    const roles = findAdminRoles(guild); // Add admin roles by default
-    const extraRoles = rolesInput
-      .split(",")
-      .map((r) => r.trim())
-      .filter(
-        (role) =>
-          !!guild.roles.cache.find(
-            (x) => x.name.toLowerCase() === role.toLowerCase()
-          )
-      );
-
-    // Update roles in configuration
-    const guildConfig = getGuildConfig(guild.id) || {};
-    guildConfig.allowedRoles = [...roles, ...extraRoles].map((role) => ({
-      id: role.id,
-      name: role.name,
-    }));
-    saveGuildConfig(guild.id, guildConfig);
-
-    const rolesSetEmbed = new EmbedBuilder()
-      .setColor(0x00ff00)
-      .setTitle(t(guild.id, "roles_set_title"))
-      .setDescription(t(guild.id, "roles_set"))
-      .setFooter({ text: t(guild.id, "roles_set_success_footer") });
-
-    return interaction.reply({
-      embeds: [rolesSetEmbed],
-      ephemeral: true,
-    });
-  }
-});
-
-// Handle voice state updates to disconnect users from the AFK channel
+// Handle voice state updates to disconnect users from the AFK channel and move muted users
+// This function handles the logic to disconnect users from the AFK channel or move them if they are muted
 client.on("voiceStateUpdate", async (oldState, newState) => {
   try {
     const guildConfig = getGuildConfig(newState.guild.id);
@@ -588,15 +187,44 @@ client.on("voiceStateUpdate", async (oldState, newState) => {
         newState.guild.members.me
       );
       if (!botPermissions.has(PermissionsBitField.Flags.MoveMembers)) {
+        console.error(t(newState.guild.id, "bot_move_permission_missing"));
         return;
       }
 
-      // Disconnect the user
+      // Disconnect the user from the AFK channel
       await newState.disconnect();
+    }
+
+    // New functionality: Move users to AFK channel if both audio and microphone are muted
+    if (
+      newState.channelId &&
+      newState.channelId !== guildConfig.afkChannelId &&
+      newState.selfMute &&
+      newState.selfDeaf
+    ) {
+      // Check if the user has been muted for over 5 minutes
+      if (!oldState.selfMute || !oldState.selfDeaf) {
+        // Start a timeout of 5 minutes
+        setTimeout(async () => {
+          const currentState = newState.guild.members.cache.get(
+            newState.id
+          )?.voice;
+          if (
+            currentState &&
+            currentState.selfMute &&
+            currentState.selfDeaf &&
+            currentState.channelId !== guildConfig.afkChannelId
+          ) {
+            // Move user to AFK channel
+            await currentState.setChannel(guildConfig.afkChannelId);
+          }
+        }, 5 * 60 * 1000);
+      }
     }
   } catch (error) {
     console.error(t(newState.guild.id, "error_voice_state_update"), error);
   }
 });
 
+// Log in to Discord with the bot token
 client.login(BOT_TOKEN);
