@@ -215,6 +215,21 @@ const rest = new REST({ version: "10" }).setToken(BOT_TOKEN);
       {
         name: "afklimit",
         description: t(null, "afklimit_description"),
+        options: [
+          {
+            name: "afk_timeout",
+            description: t(null, "afklimit_afk_timeout_description"),
+            type: 3, // STRING
+            required: false,
+            choices: [
+              { name: "1 minute", value: "1" },
+              { name: "5 minutes", value: "5" },
+              { name: "15 minutes", value: "15" },
+              { name: "30 minutes", value: "30" },
+              { name: "1 hour", value: "60" },
+            ],
+          },
+        ],
       },
     ];
 
@@ -335,6 +350,55 @@ client.on("voiceStateUpdate", async (oldState, newState) => {
     }
   } catch (error) {
     console.error(t(newState.guild.id, "error_voice_state_update"), error);
+  }
+});
+
+// Handle /afkinfo command
+client.on("interactionCreate", async (interaction) => {
+  if (!interaction.isCommand()) return;
+
+  const { commandName, guildId } = interaction;
+  if (commandName === "afkinfo") {
+    const guildConfig = getGuildConfig(guildId);
+    if (!guildConfig) {
+      return interaction.reply({
+        content: t(guildId, "no_configuration"),
+        ephemeral: true,
+      });
+    }
+
+    const afkInfoEmbed = new EmbedBuilder()
+      .setColor(0x0099ff)
+      .setTitle(t(guildId, "afkinfo_title"))
+      .addFields(
+        {
+          name: t(guildId, "afkinfo_channel"),
+          value: guildConfig.afkChannelName || t(guildId, "afkinfo_not_set"),
+          inline: true,
+        },
+        {
+          name: t(guildId, "afkinfo_roles"),
+          value: guildConfig.allowedRoles.length
+            ? guildConfig.allowedRoles
+                .map((role) => `<@&${role.id}>`)
+                .join(", ")
+            : t(guildId, "afkinfo_no_roles"),
+          inline: true,
+        },
+        {
+          name: t(guildId, "afkinfo_language"),
+          value: guildConfig.language.toUpperCase(),
+          inline: true,
+        },
+        {
+          name: t(guildId, "afkinfo_timeout"),
+          value: `${guildConfig.afkTimeout} minute(s)`,
+          inline: true,
+        }
+      )
+      .setFooter({ text: t(guildId, "afkinfo_footer") });
+
+    return interaction.reply({ embeds: [afkInfoEmbed], ephemeral: true });
   }
 });
 
