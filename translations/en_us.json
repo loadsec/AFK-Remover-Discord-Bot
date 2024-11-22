@@ -52,5 +52,7 @@
   "language_set": "Language has been set to {language}.",
   "afk_channel_set": "AFK channel has been set to {channel}.",
   "afklimit_description": "Displays and updates the current AFK timeout setting for users.",
-  "afklimit_afk_timeout_description": "Select the new AFK timeout duration (e.g., 1 minute, 5 minutes, etc.)."
+  "afklimit_afk_timeout_description": "Select the new AFK timeout duration (e.g., 1 minute, 5 minutes, etc.).",
+  "afk_timeout_minutes": "{timeout} minute(s)",
+  "afk_timeout_updated": "AFK timeout has been updated to {timeout} minute(s)."
 }
