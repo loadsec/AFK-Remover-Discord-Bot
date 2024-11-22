@@ -25,21 +25,23 @@ db.exec(`
     afk_channel_id TEXT,
     afk_channel_name TEXT,
     allowed_roles TEXT,
-    language TEXT DEFAULT 'en_us'
+    language TEXT DEFAULT 'en_us',
+    afk_timeout INTEGER DEFAULT 5
   )
 `);
 
 // Helper function to save guild config to SQLite
 function saveGuildConfig(guildId, config) {
   const stmt = db.prepare(`
-    INSERT INTO guilds (guild_id, server_name, afk_channel_id, afk_channel_name, allowed_roles, language)
-    VALUES (@guildId, @serverName, @afkChannelId, @afkChannelName, @allowedRoles, @language)
+    INSERT INTO guilds (guild_id, server_name, afk_channel_id, afk_channel_name, allowed_roles, language, afk_timeout)
+    VALUES (@guildId, @serverName, @afkChannelId, @afkChannelName, @allowedRoles, @language, @afkTimeout)
     ON CONFLICT(guild_id) DO UPDATE SET
       server_name = @serverName,
       afk_channel_id = @afkChannelId,
       afk_channel_name = @afkChannelName,
       allowed_roles = @allowedRoles,
-      language = @language
+      language = @language,
+      afk_timeout = @afkTimeout
   `);
   stmt.run({
     guildId,
@@ -48,6 +50,7 @@ function saveGuildConfig(guildId, config) {
     afkChannelName: config.afkChannelName,
     allowedRoles: JSON.stringify(config.allowedRoles),
     language: config.language,
+    afkTimeout: config.afkTimeout,
   });
 }
 
@@ -62,6 +65,7 @@ function getGuildConfig(guildId) {
       afkChannelName: row.afk_channel_name,
       allowedRoles: JSON.parse(row.allowed_roles),
       language: row.language,
+      afkTimeout: row.afk_timeout,
     };
   }
   return null;
@@ -153,6 +157,19 @@ const rest = new REST({ version: "10" }).setToken(BOT_TOKEN);
             type: 3, // STRING
             required: true,
           },
+          {
+            name: "afk_timeout",
+            description: t(null, "setup_afk_timeout_description"),
+            type: 3, // STRING
+            required: true,
+            choices: [
+              { name: "1 minute", value: "1" },
+              { name: "5 minutes", value: "5" },
+              { name: "15 minutes", value: "15" },
+              { name: "30 minutes", value: "30" },
+              { name: "1 hour", value: "60" },
+            ],
+          },
         ],
       },
       {
@@ -194,6 +211,10 @@ const rest = new REST({ version: "10" }).setToken(BOT_TOKEN);
             required: false,
           },
         ],
+      },
+      {
+        name: "afklimit",
+        description: t(null, "afklimit_description"),
       },
     ];
 
@@ -272,6 +293,7 @@ client.on("voiceStateUpdate", async (oldState, newState) => {
     if (!guildConfig || !guildConfig.afkChannelId) return;
 
     const afkChannelId = guildConfig.afkChannelId;
+    const afkTimeout = guildConfig.afkTimeout * 60 * 1000;
 
     // Check if the user joined the configured AFK channel
     if (newState.channelId === afkChannelId) {
@@ -289,7 +311,7 @@ client.on("voiceStateUpdate", async (oldState, newState) => {
       await newState.disconnect();
     }
 
-    // Check if a user is in a voice channel and muted for more than 5 minutes
+    // Check if a user is in a voice channel and muted for more than the configured timeout
     if (
       oldState.channelId !== afkChannelId &&
       newState.channelId &&
@@ -306,10 +328,10 @@ client.on("voiceStateUpdate", async (oldState, newState) => {
           currentState.selfMute &&
           currentState.selfDeaf
         ) {
-          // Move user to AFK channel if still muted and deafened after 5 minutes
+          // Move user to AFK channel if still muted and deafened after the configured timeout
           await currentState.setChannel(afkChannelId);
         }
-      }, 5 * 60 * 1000); // 5 minutes
+      }, afkTimeout); // Configured AFK timeout
     }
   } catch (error) {
     console.error(t(newState.guild.id, "error_voice_state_update"), error);
