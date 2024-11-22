@@ -196,6 +196,16 @@ client.on("voiceStateUpdate", async (oldState, newState) => {
       // Disconnect the user from the AFK channel
       await newState.disconnect();
     }
+  } catch (error) {
+    console.error(t(newState.guild.id, "error_voice_state_update"), error);
+  }
+});
+
+// New function to move users with both mic and audio muted for more than 5 minutes to AFK channel
+client.on("voiceStateUpdate", async (oldState, newState) => {
+  try {
+    const guildConfig = getGuildConfig(newState.guild.id);
+    if (!guildConfig || !guildConfig.afkChannelId) return;
 
     // New functionality: Move users to AFK channel if both audio and microphone are muted for more than 5 minutes
     if (
