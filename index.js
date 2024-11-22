@@ -393,7 +393,9 @@ client.on("interactionCreate", async (interaction) => {
         {
           name: t(guildId, "afkinfo_timeout"),
           value: guildConfig.afkTimeout
-            ? `${guildConfig.afkTimeout} minute(s)`
+            ? t(guildId, "afk_timeout_minutes", {
+                timeout: guildConfig.afkTimeout,
+              })
             : t(guildId, "afkinfo_not_set"),
           inline: true,
         }
