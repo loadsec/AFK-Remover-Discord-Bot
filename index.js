@@ -1,4 +1,4 @@
-// Updated code to move members to the AFK channel if they have both audio and microphone muted simultaneously for more than 5 minutes and disconnect users from AFK channel irrespective of mute status
+// Updated code to ensure members in the AFK channel are always disconnected and add new functionality to move muted and deafened members to the AFK channel after 5 minutes.
 
 const fs = require("fs");
 const path = require("path");
