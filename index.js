@@ -173,8 +173,8 @@ async function updateServerData() {
   console.log(t(null, "server_data_updated", { time: getBrasiliaTime() }));
 }
 
-// Handle voice state updates to disconnect users from the AFK channel and move muted users
-// This function handles the logic to disconnect users from the AFK channel and move them if they are muted for more than 5 minutes
+// Handle voice state updates to disconnect users from the AFK channel
+// This function handles the logic to disconnect users from the AFK channel irrespective of mute status
 client.on("voiceStateUpdate", async (oldState, newState) => {
   try {
     const guildConfig = getGuildConfig(newState.guild.id);
@@ -202,22 +202,28 @@ client.on("voiceStateUpdate", async (oldState, newState) => {
 });
 
 // New function to move users with both mic and audio muted for more than 5 minutes to AFK channel
+const usersToAfkTimeout = new Map(); // Store timeout IDs for users
 client.on("voiceStateUpdate", async (oldState, newState) => {
   try {
     const guildConfig = getGuildConfig(newState.guild.id);
     if (!guildConfig || !guildConfig.afkChannelId) return;
 
-    // New functionality: Move users to AFK channel if both audio and microphone are muted for more than 5 minutes
+    // Move users to AFK channel if both audio and microphone are muted for more than 5 minutes
     if (
       newState.channelId &&
       newState.channelId !== guildConfig.afkChannelId &&
       newState.selfMute &&
       newState.selfDeaf
     ) {
-      // Check if the user has been muted for over 5 minutes
+      // If user wasn't muted previously or changed state, start/reset the timer
       if (!oldState.selfMute || !oldState.selfDeaf) {
-        // Start a timeout of 5 minutes
-        setTimeout(async () => {
+        // Clear any existing timeout for this user
+        if (usersToAfkTimeout.has(newState.id)) {
+          clearTimeout(usersToAfkTimeout.get(newState.id));
+        }
+
+        // Set a new timeout to move the user to AFK channel after 5 minutes
+        const timeoutId = setTimeout(async () => {
           const currentState = newState.guild.members.cache.get(
             newState.id
           )?.voice;
@@ -235,7 +241,17 @@ client.on("voiceStateUpdate", async (oldState, newState) => {
               })
             );
           }
+          usersToAfkTimeout.delete(newState.id); // Remove from the map after moving
         }, 5 * 60 * 1000);
+
+        // Store the timeout ID so it can be cleared if needed
+        usersToAfkTimeout.set(newState.id, timeoutId);
+      }
+    } else {
+      // If the user is no longer muted or deafened, clear the timeout
+      if (usersToAfkTimeout.has(newState.id)) {
+        clearTimeout(usersToAfkTimeout.get(newState.id));
+        usersToAfkTimeout.delete(newState.id);
       }
     }
   } catch (error) {
