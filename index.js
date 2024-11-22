@@ -155,6 +155,46 @@ const rest = new REST({ version: "10" }).setToken(BOT_TOKEN);
           },
         ],
       },
+      {
+        name: "afkinfo",
+        description: t(null, "afkinfo_description"),
+      },
+      {
+        name: "setafk",
+        description: t(null, "setafk_description"),
+        options: [
+          {
+            name: "channel",
+            description: t(null, "setafk_channel_description"),
+            type: 3, // STRING
+            required: true,
+          },
+        ],
+      },
+      {
+        name: "setroles",
+        description: t(null, "setroles_description"),
+        options: [
+          {
+            name: "roles",
+            description: t(null, "setroles_roles_description"),
+            type: 3, // STRING
+            required: true,
+          },
+        ],
+      },
+      {
+        name: "setlang",
+        description: t(null, "setlang_description"),
+        options: [
+          {
+            name: "language",
+            description: t(null, "setlang_language_description"),
+            type: 3, // STRING
+            required: false,
+          },
+        ],
+      },
     ];
 
     await rest.put(Routes.applicationCommands(CLIENT_ID), { body: commands });
@@ -165,7 +205,67 @@ const rest = new REST({ version: "10" }).setToken(BOT_TOKEN);
   }
 })();
 
-// Handle voice state updates to move users to AFK channel and disconnect if necessary
+// Helper function to find a voice channel by name or ID
+function findVoiceChannel(guild, input) {
+  return guild.channels.cache.find(
+    (channel) =>
+      channel.type === 2 && // Ensure it's a voice channel
+      (channel.name.toLowerCase() === input.toLowerCase() ||
+        channel.id === input)
+  );
+}
+
+// Helper function to find roles with "Administrator" permission
+function findAdminRoles(guild) {
+  return guild.roles.cache
+    .filter(
+      (role) =>
+        role.permissions.has(PermissionsBitField.Flags.Administrator) &&
+        !role.managed
+    )
+    .map((role) => ({ id: role.id, name: role.name }));
+}
+
+// Periodically update server data, including default admin roles and native AFK channel
+async function updateServerData() {
+  client.guilds.cache.forEach(async (guild) => {
+    try {
+      const guildConfig = getGuildConfig(guild.id) || {};
+      guildConfig.serverName = guild.name;
+
+      // Detect admin roles
+      const adminRoles = findAdminRoles(guild);
+      guildConfig.allowedRoles = adminRoles;
+
+      // Detect preferred locale for language
+      const locale = guild.preferredLocale.toLowerCase().replace("-", "_"); // Convert pt-BR to pt_br
+      if (translations[locale]) {
+        guildConfig.language = locale;
+      } else {
+        guildConfig.language = "en_us"; // Default to en_us
+      }
+
+      // Check native AFK channel
+      const afkChannelId = guild.afkChannelId;
+      if (afkChannelId) {
+        const afkChannel = guild.channels.cache.get(afkChannelId);
+        if (afkChannel) {
+          guildConfig.afkChannelId = afkChannel.id;
+          guildConfig.afkChannelName = afkChannel.name;
+        }
+      }
+
+      // Save updated config
+      saveGuildConfig(guild.id, guildConfig);
+    } catch (error) {
+      console.error(`Error updating server data for guild ${guild.id}:`, error);
+    }
+  });
+
+  console.log(t(null, "server_data_updated", { time: getBrasiliaTime() }));
+}
+
+// Track voice states to manage AFK channel behavior
 client.on("voiceStateUpdate", async (oldState, newState) => {
   try {
     const guildConfig = getGuildConfig(newState.guild.id);
@@ -182,37 +282,34 @@ client.on("voiceStateUpdate", async (oldState, newState) => {
         newState.guild.members.me
       );
       if (!botPermissions.has(PermissionsBitField.Flags.MoveMembers)) {
-        console.error(t(newState.guild.id, "bot_move_permission_missing"));
         return;
       }
 
       // Disconnect the user
-      await newState.member.voice.disconnect();
-      console.log(
-        `User ${newState.member.user.tag} was disconnected from the AFK channel.`
-      );
-      return;
+      await newState.disconnect();
     }
 
-    // Check if the user is in a voice channel, muted, and deafened for more than 5 minutes
+    // Check if a user is in a voice channel and muted for more than 5 minutes
     if (
+      oldState.channelId !== afkChannelId &&
       newState.channelId &&
       newState.channelId !== afkChannelId &&
       newState.selfMute &&
       newState.selfDeaf
     ) {
       setTimeout(async () => {
-        const member = await newState.guild.members.fetch(newState.id);
+        const currentState = newState.guild.members.cache.get(
+          newState.id
+        ).voice;
         if (
-          member.voice.channelId === newState.channelId &&
-          member.voice.selfMute &&
-          member.voice.selfDeaf
+          currentState.channelId === newState.channelId &&
+          currentState.selfMute &&
+          currentState.selfDeaf
         ) {
-          // Move user to AFK channel
-          await member.voice.setChannel(afkChannelId);
-          console.log(`User ${member.user.tag} was moved to the AFK channel.`);
+          // Move user to AFK channel if still muted and deafened after 5 minutes
+          await currentState.setChannel(afkChannelId);
         }
-      }, 5 * 60 * 1000); // 5 minutes in milliseconds
+      }, 5 * 60 * 1000); // 5 minutes
     }
   } catch (error) {
     console.error(t(newState.guild.id, "error_voice_state_update"), error);
