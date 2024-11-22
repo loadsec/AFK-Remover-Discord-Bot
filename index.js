@@ -1,3 +1,5 @@
+// Updated code to move members to the AFK channel if they have both audio and microphone muted simultaneously for more than 5 minutes and disconnect users from AFK channel irrespective of mute status
+
 const fs = require("fs");
 const path = require("path");
 const {
@@ -172,7 +174,7 @@ async function updateServerData() {
 }
 
 // Handle voice state updates to disconnect users from the AFK channel and move muted users
-// This function handles the logic to disconnect users from the AFK channel or move them if they are muted
+// This function handles the logic to disconnect users from the AFK channel and move them if they are muted for more than 5 minutes
 client.on("voiceStateUpdate", async (oldState, newState) => {
   try {
     const guildConfig = getGuildConfig(newState.guild.id);
@@ -195,7 +197,7 @@ client.on("voiceStateUpdate", async (oldState, newState) => {
       await newState.disconnect();
     }
 
-    // New functionality: Move users to AFK channel if both audio and microphone are muted
+    // New functionality: Move users to AFK channel if both audio and microphone are muted for more than 5 minutes
     if (
       newState.channelId &&
       newState.channelId !== guildConfig.afkChannelId &&
@@ -217,6 +219,11 @@ client.on("voiceStateUpdate", async (oldState, newState) => {
           ) {
             // Move user to AFK channel
             await currentState.setChannel(guildConfig.afkChannelId);
+            console.log(
+              t(newState.guild.id, "user_moved_to_afk", {
+                user: currentState.member.user.tag,
+              })
+            );
           }
         }, 5 * 60 * 1000);
       }
