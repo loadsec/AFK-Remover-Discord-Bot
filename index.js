@@ -220,7 +220,7 @@ const rest = new REST({ version: "10" }).setToken(BOT_TOKEN);
             name: "afk_timeout",
             description: t(null, "afklimit_afk_timeout_description"),
             type: 3, // STRING
-            required: false,
+            required: true,
             choices: [
               { name: "1 minute", value: "1" },
               { name: "5 minutes", value: "5" },
@@ -353,7 +353,7 @@ client.on("voiceStateUpdate", async (oldState, newState) => {
   }
 });
 
-// Handle /afkinfo command
+// Handle /afkinfo and /afklimit commands
 client.on("interactionCreate", async (interaction) => {
   if (!interaction.isCommand()) return;
 
@@ -392,17 +392,35 @@ client.on("interactionCreate", async (interaction) => {
         },
         {
           name: t(guildId, "afkinfo_timeout"),
-          value: `${
-            guildConfig.afkTimeout
-              ? guildConfig.afkTimeout
-              : t(guildId, "afkinfo_not_set")
-          } minute(s)`,
+          value: guildConfig.afkTimeout
+            ? `${guildConfig.afkTimeout} minute(s)`
+            : t(guildId, "afkinfo_not_set"),
           inline: true,
         }
       )
       .setFooter({ text: t(guildId, "afkinfo_footer") });
 
     return interaction.reply({ embeds: [afkInfoEmbed], ephemeral: true });
+  }
+
+  if (commandName === "afklimit") {
+    const afkTimeout = interaction.options.getString("afk_timeout");
+    const guildConfig = getGuildConfig(guildId);
+    if (!guildConfig) {
+      return interaction.reply({
+        content: t(guildId, "no_configuration"),
+        ephemeral: true,
+      });
+    }
+
+    // Update AFK timeout
+    guildConfig.afkTimeout = parseInt(afkTimeout, 10);
+    saveGuildConfig(guildId, guildConfig);
+
+    return interaction.reply({
+      content: t(guildId, "afk_timeout_updated", { timeout: afkTimeout }),
+      ephemeral: true,
+    });
   }
 });
 
