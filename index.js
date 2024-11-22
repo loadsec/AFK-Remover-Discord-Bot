@@ -41,7 +41,7 @@ function saveGuildConfig(guildId, config) {
       afk_channel_name = @afkChannelName,
       allowed_roles = @allowedRoles,
       language = @language,
-      afk_timeout = @afkTimeout
+      afk_timeout = COALESCE(guilds.afk_timeout, @afkTimeout)
   `);
   stmt.run({
     guildId,
@@ -278,7 +278,7 @@ async function updateServerData() {
       if (translations[locale]) {
         guildConfig.language = locale;
       } else {
-        guildConfig.language = "en_us"; // Default to en_us
+        guildConfig.language = guildConfig.language || "en_us"; // Default to en_us if not already set
       }
 
       // Check native AFK channel
@@ -286,12 +286,16 @@ async function updateServerData() {
       if (afkChannelId) {
         const afkChannel = guild.channels.cache.get(afkChannelId);
         if (afkChannel) {
-          guildConfig.afkChannelId = afkChannel.id;
-          guildConfig.afkChannelName = afkChannel.name;
+          guildConfig.afkChannelId = guildConfig.afkChannelId || afkChannel.id;
+          guildConfig.afkChannelName =
+            guildConfig.afkChannelName || afkChannel.name;
         }
       }
 
-      // Save updated config
+      // Save updated config if there's no existing afkTimeout
+      if (guildConfig.afkTimeout === undefined) {
+        guildConfig.afkTimeout = 5; // Default timeout of 5 minutes if not set
+      }
       saveGuildConfig(guild.id, guildConfig);
     } catch (error) {
       console.error(`Error updating server data for guild ${guild.id}:`, error);
