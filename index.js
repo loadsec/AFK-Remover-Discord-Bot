@@ -216,7 +216,11 @@ client.on("voiceStateUpdate", async (oldState, newState) => {
       newState.selfDeaf
     ) {
       // If user wasn't muted previously or changed state, start/reset the timer
-      if (!oldState.selfMute || !oldState.selfDeaf) {
+      if (
+        !oldState.selfMute ||
+        !oldState.selfDeaf ||
+        oldState.channelId !== newState.channelId
+      ) {
         // Clear any existing timeout for this user
         if (usersToAfkTimeout.has(newState.id)) {
           clearTimeout(usersToAfkTimeout.get(newState.id));
