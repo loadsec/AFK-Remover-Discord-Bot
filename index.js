@@ -32,20 +32,20 @@ db.exec(`
 
 // Helper function to save guild config to SQLite
 function saveGuildConfig(guildId, config) {
-  const existingConfig = getGuildConfig(guildId);
+  const existingConfig = getGuildConfig(guildId) || {};
 
   const updatedConfig = {
-    serverName: config.serverName || existingConfig?.serverName,
-    afkChannelId: config.afkChannelId || existingConfig?.afkChannelId,
-    afkChannelName: config.afkChannelName || existingConfig?.afkChannelName,
+    serverName: config.serverName || existingConfig.serverName,
+    afkChannelId: config.afkChannelId || existingConfig.afkChannelId,
+    afkChannelName: config.afkChannelName || existingConfig.afkChannelName,
     allowedRoles: config.allowedRoles
       ? JSON.stringify(config.allowedRoles)
-      : existingConfig?.allowedRoles,
-    language: config.language || existingConfig?.language || "en_us",
+      : existingConfig.allowedRoles,
+    language: config.language || existingConfig.language || "en_us",
     afkTimeout:
       config.afkTimeout !== undefined
         ? config.afkTimeout
-        : existingConfig?.afkTimeout || 5,
+        : existingConfig.afkTimeout || 5,
   };
 
   const stmt = db.prepare(`
@@ -118,8 +118,8 @@ const client = new Client({
 
 client.once("ready", () => {
   console.log(`Bot is running as ${client.user.tag}`);
-  updateServerData(); // Perform the first update immediately
   setInterval(updateServerData, 5 * 60 * 1000); // Update every 5 minutes
+  updateServerData(); // Initial update
 
   // Set bot activity to show it is listening to /setup
   client.user.setActivity("/setup", { type: ActivityType.Listening });
@@ -318,58 +318,6 @@ async function updateServerData() {
   console.log(t(null, "server_data_updated", { time: getBrasiliaTime() }));
 }
 
-// Track voice states to manage AFK channel behavior
-client.on("voiceStateUpdate", async (oldState, newState) => {
-  try {
-    const guildConfig = getGuildConfig(newState.guild.id);
-    if (!guildConfig || !guildConfig.afkChannelId) return;
-
-    const afkChannelId = guildConfig.afkChannelId;
-    const afkTimeout = guildConfig.afkTimeout * 60 * 1000;
-
-    // Check if the user joined the configured AFK channel
-    if (newState.channelId === afkChannelId) {
-      if (newState.member.id === client.user.id) return; // Ignore the bot itself
-
-      // Check bot permissions in the channel
-      const botPermissions = newState.channel.permissionsFor(
-        newState.guild.members.me
-      );
-      if (!botPermissions.has(PermissionsBitField.Flags.MoveMembers)) {
-        return;
-      }
-
-      // Disconnect the user
-      await newState.disconnect();
-    }
-
-    // Check if a user is in a voice channel and muted for more than the configured timeout
-    if (
-      oldState.channelId !== afkChannelId &&
-      newState.channelId &&
-      newState.channelId !== afkChannelId &&
-      newState.selfMute &&
-      newState.selfDeaf
-    ) {
-      setTimeout(async () => {
-        const currentState = newState.guild.members.cache.get(
-          newState.id
-        ).voice;
-        if (
-          currentState.channelId === newState.channelId &&
-          currentState.selfMute &&
-          currentState.selfDeaf
-        ) {
-          // Move user to AFK channel if still muted and deafened after the configured timeout
-          await currentState.setChannel(afkChannelId);
-        }
-      }, afkTimeout); // Configured AFK timeout
-    }
-  } catch (error) {
-    console.error(t(newState.guild.id, "error_voice_state_update"), error);
-  }
-});
-
 // Handle /afkinfo and /afklimit commands
 client.on("interactionCreate", async (interaction) => {
   if (!interaction.isCommand()) return;
@@ -438,6 +386,70 @@ client.on("interactionCreate", async (interaction) => {
 
     return interaction.reply({
       content: t(guildId, "afk_timeout_updated", { timeout: afkTimeout }),
+      ephemeral: true,
+    });
+  }
+
+  if (commandName === "setlang") {
+    const selectedLanguage = interaction.options.getString("language");
+
+    // If no language is provided, show available languages
+    if (!selectedLanguage) {
+      const availableLanguages = Object.keys(translations)
+        .map((lang) => lang.toUpperCase())
+        .join(", ");
+      const availableLanguagesEmbed = new EmbedBuilder()
+        .setColor(0x0099ff)
+        .setTitle(t(guildId, "available_languages_title"))
+        .setDescription(availableLanguages)
+        .setFooter({ text: t(guildId, "available_languages_footer") })
+        .setTimestamp();
+
+      return interaction.reply({
+        embeds: [availableLanguagesEmbed],
+        ephemeral: true,
+      });
+    }
+
+    // Validate language
+    if (!translations[selectedLanguage]) {
+      const availableLanguages = Object.keys(translations)
+        .map((lang) => lang.toUpperCase())
+        .join(", ");
+      const invalidLanguageEmbed = new EmbedBuilder()
+        .setColor(0xffa500)
+        .setTitle(t(guildId, "invalid_language_title"))
+        .setDescription(
+          `${t(guildId, "invalid_language")}
+
+**${t(guildId, "available_languages_label")}:**
+${availableLanguages}`
+        )
+        .setFooter({ text: t(guildId, "invalid_language_footer") });
+
+      return interaction.reply({
+        embeds: [invalidLanguageEmbed],
+        ephemeral: true,
+      });
+    }
+
+    // Update language in configuration
+    const guildConfig = getGuildConfig(guildId) || {};
+    guildConfig.language = selectedLanguage;
+    saveGuildConfig(guildId, guildConfig);
+
+    const languageSetEmbed = new EmbedBuilder()
+      .setColor(0x00ff00)
+      .setTitle(t(guildId, "language_set_title"))
+      .setDescription(
+        t(guildId, "language_set", {
+          language: selectedLanguage.toUpperCase(),
+        })
+      )
+      .setFooter({ text: t(guildId, "language_set_success_footer") });
+
+    return interaction.reply({
+      embeds: [languageSetEmbed],
       ephemeral: true,
     });
   }
