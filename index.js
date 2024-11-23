@@ -108,7 +108,7 @@ client.once("ready", () => {
   // Set bot activity to show it is listening to /afkinfo
   client.user.setActivity("/afkinfo", { type: ActivityType.Listening });
 
-  // Delete and re-register slash commands
+  // Register slash commands
   registerSlashCommands();
 });
 
@@ -126,23 +126,11 @@ function getBrasiliaTime() {
   return formatter.format(new Date());
 }
 
-// Register slash commands function (delete old commands and register new ones)
+// Register slash commands function
 async function registerSlashCommands() {
   const rest = new REST({ version: "10" }).setToken(BOT_TOKEN);
 
   try {
-    console.log("Deleting all existing slash commands...");
-
-    // Delete all global commands
-    await rest.put(Routes.applicationCommands(CLIENT_ID), { body: [] });
-    console.log("Successfully deleted all global application commands.");
-
-    // Delete all guild-specific commands
-    await rest.put(Routes.applicationGuildCommands(CLIENT_ID, GUILD_ID), {
-      body: [],
-    });
-    console.log("Successfully deleted all guild commands.");
-
     console.log("Registering new slash commands...");
 
     const commands = [
