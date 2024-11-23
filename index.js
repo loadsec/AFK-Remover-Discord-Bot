@@ -32,71 +32,28 @@ db.exec(`
 
 // Helper function to save guild config to SQLite
 function saveGuildConfig(guildId, config) {
-  const existingConfig = getGuildConfig(guildId);
-
-  if (existingConfig) {
-    // Update only if values are different
-    const updatedConfig = {
-      serverName:
-        config.serverName !== undefined
-          ? config.serverName
-          : existingConfig.serverName,
-      afkChannelId:
-        config.afkChannelId !== undefined
-          ? config.afkChannelId
-          : existingConfig.afkChannelId,
-      afkChannelName:
-        config.afkChannelName !== undefined
-          ? config.afkChannelName
-          : existingConfig.afkChannelName,
-      allowedRoles:
-        config.allowedRoles !== undefined
-          ? JSON.stringify(config.allowedRoles)
-          : existingConfig.allowedRoles,
-      language:
-        config.language !== undefined
-          ? config.language
-          : existingConfig.language,
-      afkTimeout:
-        config.afkTimeout !== undefined
-          ? config.afkTimeout
-          : existingConfig.afkTimeout,
-    };
-
-    const stmt = db.prepare(`
-      UPDATE guilds SET
-        server_name = COALESCE(@serverName, server_name),
-        afk_channel_id = COALESCE(@afkChannelId, afk_channel_id),
-        afk_channel_name = COALESCE(@afkChannelName, afk_channel_name),
-        allowed_roles = COALESCE(@allowedRoles, allowed_roles),
-        language = COALESCE(@language, language),
-        afk_timeout = COALESCE(@afkTimeout, afk_timeout)
-      WHERE guild_id = @guildId
-    `);
-
-    stmt.run({
-      guildId,
-      ...updatedConfig,
-    });
-  } else {
-    // Insert new config if it doesn't exist
-    const stmt = db.prepare(`
-      INSERT INTO guilds (guild_id, server_name, afk_channel_id, afk_channel_name, allowed_roles, language, afk_timeout)
-      VALUES (@guildId, @serverName, @afkChannelId, @afkChannelName, @allowedRoles, @language, @afkTimeout)
-    `);
-
-    stmt.run({
-      guildId,
-      serverName: config.serverName ?? null,
-      afkChannelId: config.afkChannelId ?? null,
-      afkChannelName: config.afkChannelName ?? null,
-      allowedRoles: config.allowedRoles
-        ? JSON.stringify(config.allowedRoles)
-        : null,
-      language: config.language ?? "en_us",
-      afkTimeout: config.afkTimeout ?? 5,
-    });
-  }
+  const stmt = db.prepare(`
+    INSERT INTO guilds (guild_id, server_name, afk_channel_id, afk_channel_name, allowed_roles, language, afk_timeout)
+    VALUES (@guildId, @serverName, @afkChannelId, @afkChannelName, @allowedRoles, @language, @afkTimeout)
+    ON CONFLICT(guild_id) DO UPDATE SET
+      server_name = COALESCE(@serverName, server_name),
+      afk_channel_id = COALESCE(@afkChannelId, afk_channel_id),
+      afk_channel_name = COALESCE(@afkChannelName, afk_channel_name),
+      allowed_roles = COALESCE(@allowedRoles, allowed_roles),
+      language = COALESCE(@language, language),
+      afk_timeout = COALESCE(@afkTimeout, afk_timeout)
+  `);
+  stmt.run({
+    guildId,
+    serverName: config.serverName ?? null,
+    afkChannelId: config.afkChannelId ?? null,
+    afkChannelName: config.afkChannelName ?? null,
+    allowedRoles: config.allowedRoles
+      ? JSON.stringify(config.allowedRoles)
+      : null,
+    language: config.language ?? "en_us",
+    afkTimeout: config.afkTimeout ?? 5,
+  });
 }
 
 // Helper function to get guild config from SQLite
@@ -201,6 +158,10 @@ const rest = new REST({ version: "10" }).setToken(BOT_TOKEN);
             description: t(null, "setup_language_description"),
             type: 3, // STRING
             required: true,
+            choices: Object.keys(translations).map((lang) => ({
+              name: lang.toUpperCase(),
+              value: lang,
+            })),
           },
           {
             name: "afk_timeout",
@@ -253,7 +214,11 @@ const rest = new REST({ version: "10" }).setToken(BOT_TOKEN);
             name: "language",
             description: t(null, "setlang_language_description"),
             type: 3, // STRING
-            required: false,
+            required: true,
+            choices: Object.keys(translations).map((lang) => ({
+              name: lang.toUpperCase(),
+              value: lang,
+            })),
           },
         ],
       },
@@ -392,56 +357,32 @@ client.on("voiceStateUpdate", async (oldState, newState) => {
   }
 });
 
-// Handle /afkinfo and /afklimit commands
+// Handle /setlang command
 client.on("interactionCreate", async (interaction) => {
   if (!interaction.isCommand()) return;
 
   const { commandName, guildId } = interaction;
-  if (commandName === "afkinfo") {
+  if (commandName === "setlang") {
+    const language = interaction.options.getString("language");
     const guildConfig = getGuildConfig(guildId);
-    if (!guildConfig) {
+
+    if (!translations[language]) {
       return interaction.reply({
-        content: t(guildId, "no_configuration"),
+        content: t(guildId, "invalid_language"),
         ephemeral: true,
       });
     }
 
-    const afkInfoEmbed = new EmbedBuilder()
-      .setColor(0x0099ff)
-      .setTitle(t(guildId, "afkinfo_title"))
-      .addFields(
-        {
-          name: t(guildId, "afkinfo_channel"),
-          value: guildConfig.afkChannelName || t(guildId, "afkinfo_not_set"),
-          inline: true,
-        },
-        {
-          name: t(guildId, "afkinfo_roles"),
-          value: guildConfig.allowedRoles.length
-            ? guildConfig.allowedRoles
-                .map((role) => `<@&${role.id}>`)
-                .join(", ")
-            : t(guildId, "afkinfo_no_roles"),
-          inline: true,
-        },
-        {
-          name: t(guildId, "afkinfo_language"),
-          value: guildConfig.language.toUpperCase(),
-          inline: true,
-        },
-        {
-          name: t(guildId, "afkinfo_timeout"),
-          value: guildConfig.afkTimeout
-            ? t(guildId, "afk_timeout_minutes", {
-                timeout: guildConfig.afkTimeout,
-              })
-            : t(guildId, "afkinfo_not_set"),
-          inline: true,
-        }
-      )
-      .setFooter({ text: t(guildId, "afkinfo_footer") });
+    // Update language
+    guildConfig.language = language;
+    saveGuildConfig(guildId, guildConfig);
 
-    return interaction.reply({ embeds: [afkInfoEmbed], ephemeral: true });
+    return interaction.reply({
+      content: t(guildId, "language_updated", {
+        language: language.toUpperCase(),
+      }),
+      ephemeral: true,
+    });
   }
 
   if (commandName === "afklimit") {
