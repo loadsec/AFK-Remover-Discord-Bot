@@ -34,7 +34,7 @@ db.exec(`
 function saveGuildConfig(guildId, config) {
   const existingConfig = getGuildConfig(guildId) || {};
 
-  // Merge new configuration with the existing one, ensuring existing values are retained if not overwritten
+  // Merge new configuration with the existing one
   const updatedConfig = {
     serverName: config.serverName || existingConfig.serverName,
     afkChannelId: config.afkChannelId || existingConfig.afkChannelId,
@@ -119,26 +119,8 @@ const client = new Client({
 
 client.once("ready", () => {
   console.log(`Bot is running as ${client.user.tag}`);
-  setInterval(updateServerData, 5 * 60 * 1000); // Update every 5 minutes
-  updateServerData(); // Initial update
-
-  // Set bot activity to show it is listening to /setup
   client.user.setActivity("/setup", { type: ActivityType.Listening });
 });
-
-// Helper function to get the current time in Brasília (UTC-3)
-function getBrasiliaTime() {
-  const formatter = new Intl.DateTimeFormat("pt-BR", {
-    timeZone: "America/Sao_Paulo",
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-    hour: "2-digit",
-    minute: "2-digit",
-    second: "2-digit",
-  });
-  return formatter.format(new Date());
-}
 
 // Register slash commands
 const rest = new REST({ version: "10" }).setToken(BOT_TOKEN);
@@ -150,29 +132,29 @@ const rest = new REST({ version: "10" }).setToken(BOT_TOKEN);
     const commands = [
       {
         name: "setup",
-        description: t(null, "setup_description"),
+        description: "Set up the AFK channel, roles, and language for the bot.",
         options: [
           {
             name: "channel",
-            description: t(null, "setup_channel_description"),
+            description: "Set the AFK channel.",
             type: 3, // STRING
             required: true,
           },
           {
             name: "roles",
-            description: t(null, "setup_roles_description"),
+            description: "Set the roles allowed to configure the bot.",
             type: 3, // STRING
             required: true,
           },
           {
             name: "language",
-            description: t(null, "setup_language_description"),
+            description: "Set the language for the bot.",
             type: 3, // STRING
             required: true,
           },
           {
             name: "afk_timeout",
-            description: t(null, "setup_afk_timeout_description"),
+            description: "Set the AFK timeout in minutes.",
             type: 3, // STRING
             required: true,
             choices: [
@@ -187,15 +169,16 @@ const rest = new REST({ version: "10" }).setToken(BOT_TOKEN);
       },
       {
         name: "afkinfo",
-        description: t(null, "afkinfo_description"),
+        description:
+          "Displays the current AFK channel, roles, timeout, and language configuration.",
       },
       {
         name: "setafk",
-        description: t(null, "setafk_description"),
+        description: "Set the AFK channel for the bot.",
         options: [
           {
             name: "channel",
-            description: t(null, "setafk_channel_description"),
+            description: "The voice channel to set as AFK.",
             type: 3, // STRING
             required: true,
           },
@@ -203,11 +186,11 @@ const rest = new REST({ version: "10" }).setToken(BOT_TOKEN);
       },
       {
         name: "setroles",
-        description: t(null, "setroles_description"),
+        description: "Set the roles allowed to configure the bot.",
         options: [
           {
             name: "roles",
-            description: t(null, "setroles_roles_description"),
+            description: "The roles to be allowed (comma-separated).",
             type: 3, // STRING
             required: true,
           },
@@ -215,23 +198,24 @@ const rest = new REST({ version: "10" }).setToken(BOT_TOKEN);
       },
       {
         name: "setlang",
-        description: t(null, "setlang_description"),
+        description: "Set the language for the bot.",
         options: [
           {
             name: "language",
-            description: t(null, "setlang_language_description"),
+            description: "The language to set for the bot.",
             type: 3, // STRING
-            required: false,
+            required: true,
           },
         ],
       },
       {
         name: "afklimit",
-        description: t(null, "afklimit_description"),
+        description:
+          "Displays and updates the current AFK timeout setting for users.",
         options: [
           {
             name: "afk_timeout",
-            description: t(null, "afklimit_afk_timeout_description"),
+            description: "The AFK timeout in minutes.",
             type: 3, // STRING
             required: true,
             choices: [
@@ -266,16 +250,14 @@ client.on("interactionCreate", async (interaction) => {
     const selectedLanguage = interaction.options.getString("language");
     const afkTimeout = interaction.options.getString("afk_timeout");
 
-    // Find AFK channel
     const afkChannel = findVoiceChannel(interaction.guild, channelInput);
     if (!afkChannel) {
       return interaction.reply({
-        content: t(guildId, "invalid_channel"),
+        content: "Invalid AFK channel.",
         ephemeral: true,
       });
     }
 
-    // Find roles
     const extraRoles = rolesInput
       .split(",")
       .map((r) => r.trim())
@@ -286,7 +268,6 @@ client.on("interactionCreate", async (interaction) => {
           )
       );
 
-    // Save configuration
     const config = {
       serverName: interaction.guild.name,
       afkChannelId: afkChannel.id,
@@ -304,7 +285,71 @@ client.on("interactionCreate", async (interaction) => {
     saveGuildConfig(guildId, config);
 
     return interaction.reply({
-      content: t(guildId, "setup_complete"),
+      content: "Setup complete.",
+      ephemeral: true,
+    });
+  }
+
+  if (commandName === "afkinfo") {
+    const guildConfig = getGuildConfig(guildId);
+    if (!guildConfig) {
+      return interaction.reply({
+        content: "No configuration found.",
+        ephemeral: true,
+      });
+    }
+
+    const afkInfoEmbed = new EmbedBuilder()
+      .setColor(0x0099ff)
+      .setTitle("AFK Configuration")
+      .addFields(
+        {
+          name: "AFK Channel",
+          value: guildConfig.afkChannelName || "Not set",
+          inline: true,
+        },
+        {
+          name: "Allowed Roles",
+          value: guildConfig.allowedRoles.length
+            ? guildConfig.allowedRoles
+                .map((role) => `<@&${role.id}>`)
+                .join(", ")
+            : "None",
+          inline: true,
+        },
+        {
+          name: "Language",
+          value: guildConfig.language.toUpperCase(),
+          inline: true,
+        },
+        {
+          name: "AFK Timeout",
+          value: `${guildConfig.afkTimeout} minute(s)`,
+          inline: true,
+        }
+      );
+
+    return interaction.reply({ embeds: [afkInfoEmbed], ephemeral: true });
+  }
+
+  if (commandName === "setafk") {
+    const channelInput = interaction.options.getString("channel");
+    const afkChannel = findVoiceChannel(interaction.guild, channelInput);
+
+    if (!afkChannel) {
+      return interaction.reply({
+        content: "Invalid AFK channel.",
+        ephemeral: true,
+      });
+    }
+
+    const guildConfig = getGuildConfig(guildId) || {};
+    guildConfig.afkChannelId = afkChannel.id;
+    guildConfig.afkChannelName = afkChannel.name;
+    saveGuildConfig(guildId, guildConfig);
+
+    return interaction.reply({
+      content: `AFK channel set to ${afkChannel.name}`,
       ephemeral: true,
     });
   }
@@ -312,19 +357,9 @@ client.on("interactionCreate", async (interaction) => {
   if (commandName === "setlang") {
     const selectedLanguage = interaction.options.getString("language");
 
-    if (!selectedLanguage) {
-      const availableLanguages = Object.keys(translations)
-        .map((lang) => lang.toUpperCase())
-        .join(", ");
-      return interaction.reply({
-        content: `Available languages: ${availableLanguages}`,
-        ephemeral: true,
-      });
-    }
-
     if (!translations[selectedLanguage]) {
       return interaction.reply({
-        content: t(guildId, "invalid_language"),
+        content: "Invalid language selection.",
         ephemeral: true,
       });
     }
@@ -334,13 +369,53 @@ client.on("interactionCreate", async (interaction) => {
     saveGuildConfig(guildId, guildConfig);
 
     return interaction.reply({
-      content: t(guildId, "language_set"),
+      content: `Language set to ${selectedLanguage}`,
       ephemeral: true,
     });
   }
 
-  // Handle other commands similarly...
+  if (commandName === "afklimit") {
+    const afkTimeout = interaction.options.getString("afk_timeout");
+
+    const guildConfig = getGuildConfig(guildId) || {};
+    guildConfig.afkTimeout = parseInt(afkTimeout, 10);
+    saveGuildConfig(guildId, guildConfig);
+
+    return interaction.reply({
+      content: `AFK timeout updated to ${afkTimeout} minute(s)`,
+      ephemeral: true,
+    });
+  }
+
+  if (commandName === "setroles") {
+    const rolesInput = interaction.options.getString("roles");
+    const extraRoles = rolesInput.split(",").map((r) => r.trim());
+
+    const guildConfig = getGuildConfig(guildId) || {};
+    guildConfig.allowedRoles = extraRoles.map((roleName) => {
+      const role = interaction.guild.roles.cache.find(
+        (r) => r.name.toLowerCase() === roleName.toLowerCase()
+      );
+      return role ? { id: role.id, name: role.name } : null;
+    });
+
+    saveGuildConfig(guildId, guildConfig);
+
+    return interaction.reply({
+      content: `Allowed roles updated.`,
+      ephemeral: true,
+    });
+  }
 });
 
-// Login to Discord
+// Helper function to find a voice channel by name or ID
+function findVoiceChannel(guild, input) {
+  return guild.channels.cache.find(
+    (channel) =>
+      channel.type === 2 && // Ensure it's a voice channel
+      (channel.name.toLowerCase() === input.toLowerCase() ||
+        channel.id === input)
+  );
+}
+
 client.login(BOT_TOKEN);
