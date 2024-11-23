@@ -32,25 +32,47 @@ db.exec(`
 
 // Helper function to save guild config to SQLite
 function saveGuildConfig(guildId, config) {
+  const existingConfig = getGuildConfig(guildId);
+
+  const updatedConfig = {
+    serverName:
+      config.serverName || (existingConfig ? existingConfig.serverName : null),
+    afkChannelId:
+      config.afkChannelId ||
+      (existingConfig ? existingConfig.afkChannelId : null),
+    afkChannelName:
+      config.afkChannelName ||
+      (existingConfig ? existingConfig.afkChannelName : null),
+    allowedRoles: config.allowedRoles
+      ? JSON.stringify(config.allowedRoles)
+      : existingConfig
+      ? JSON.stringify(existingConfig.allowedRoles)
+      : "[]",
+    language:
+      config.language || (existingConfig ? existingConfig.language : "en_us"),
+    afkTimeout:
+      config.afkTimeout !== undefined
+        ? config.afkTimeout
+        : existingConfig
+        ? existingConfig.afkTimeout
+        : 5,
+  };
+
   const stmt = db.prepare(`
     INSERT INTO guilds (guild_id, server_name, afk_channel_id, afk_channel_name, allowed_roles, language, afk_timeout)
     VALUES (@guildId, @serverName, @afkChannelId, @afkChannelName, @allowedRoles, @language, @afkTimeout)
     ON CONFLICT(guild_id) DO UPDATE SET
-      server_name = COALESCE(guilds.server_name, @serverName),
-      afk_channel_id = COALESCE(guilds.afk_channel_id, @afkChannelId),
-      afk_channel_name = COALESCE(guilds.afk_channel_name, @afkChannelName),
-      allowed_roles = COALESCE(guilds.allowed_roles, @allowedRoles),
-      language = COALESCE(guilds.language, @language),
-      afk_timeout = COALESCE(guilds.afk_timeout, @afkTimeout)
+      server_name = excluded.server_name,
+      afk_channel_id = excluded.afk_channel_id,
+      afk_channel_name = excluded.afk_channel_name,
+      allowed_roles = excluded.allowed_roles,
+      language = excluded.language,
+      afk_timeout = excluded.afk_timeout
   `);
+
   stmt.run({
     guildId,
-    serverName: config.serverName,
-    afkChannelId: config.afkChannelId,
-    afkChannelName: config.afkChannelName,
-    allowedRoles: JSON.stringify(config.allowedRoles),
-    language: config.language,
-    afkTimeout: config.afkTimeout,
+    ...updatedConfig,
   });
 }
 
@@ -267,7 +289,8 @@ async function updateServerData() {
   client.guilds.cache.forEach(async (guild) => {
     try {
       const guildConfig = getGuildConfig(guild.id) || {};
-      guildConfig.serverName = guildConfig.serverName || guild.name;
+
+      if (!guildConfig.serverName) guildConfig.serverName = guild.name;
 
       // Detect admin roles
       if (!guildConfig.allowedRoles) {
@@ -276,23 +299,17 @@ async function updateServerData() {
       }
 
       // Detect preferred locale for language
-      guildConfig.language =
-        guildConfig.language ||
-        guild.preferredLocale.toLowerCase().replace("-", "_") ||
-        "en_us";
-      if (!translations[guildConfig.language]) {
-        guildConfig.language = "en_us"; // Default to en_us if not available
+      if (!guildConfig.language) {
+        const locale = guild.preferredLocale.toLowerCase().replace("-", "_"); // Convert pt-BR to pt_br
+        guildConfig.language = translations[locale] ? locale : "en_us";
       }
 
       // Check native AFK channel
-      if (!guildConfig.afkChannelId) {
-        const afkChannelId = guild.afkChannelId;
-        if (afkChannelId) {
-          const afkChannel = guild.channels.cache.get(afkChannelId);
-          if (afkChannel) {
-            guildConfig.afkChannelId = afkChannel.id;
-            guildConfig.afkChannelName = afkChannel.name;
-          }
+      if (!guildConfig.afkChannelId && guild.afkChannelId) {
+        const afkChannel = guild.channels.cache.get(guild.afkChannelId);
+        if (afkChannel) {
+          guildConfig.afkChannelId = afkChannel.id;
+          guildConfig.afkChannelName = afkChannel.name;
         }
       }
 
