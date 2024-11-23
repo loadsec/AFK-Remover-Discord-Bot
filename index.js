@@ -35,27 +35,17 @@ function saveGuildConfig(guildId, config) {
   const existingConfig = getGuildConfig(guildId);
 
   const updatedConfig = {
-    serverName:
-      config.serverName || (existingConfig ? existingConfig.serverName : null),
-    afkChannelId:
-      config.afkChannelId ||
-      (existingConfig ? existingConfig.afkChannelId : null),
-    afkChannelName:
-      config.afkChannelName ||
-      (existingConfig ? existingConfig.afkChannelName : null),
+    serverName: config.serverName || existingConfig?.serverName,
+    afkChannelId: config.afkChannelId || existingConfig?.afkChannelId,
+    afkChannelName: config.afkChannelName || existingConfig?.afkChannelName,
     allowedRoles: config.allowedRoles
       ? JSON.stringify(config.allowedRoles)
-      : existingConfig
-      ? JSON.stringify(existingConfig.allowedRoles)
-      : "[]",
-    language:
-      config.language || (existingConfig ? existingConfig.language : "en_us"),
+      : existingConfig?.allowedRoles,
+    language: config.language || existingConfig?.language || "en_us",
     afkTimeout:
       config.afkTimeout !== undefined
         ? config.afkTimeout
-        : existingConfig
-        ? existingConfig.afkTimeout
-        : 5,
+        : existingConfig?.afkTimeout || 5,
   };
 
   const stmt = db.prepare(`
@@ -85,7 +75,7 @@ function getGuildConfig(guildId) {
       serverName: row.server_name,
       afkChannelId: row.afk_channel_id,
       afkChannelName: row.afk_channel_name,
-      allowedRoles: JSON.parse(row.allowed_roles),
+      allowedRoles: row.allowed_roles ? JSON.parse(row.allowed_roles) : [],
       language: row.language,
       afkTimeout: row.afk_timeout,
     };
@@ -288,35 +278,27 @@ function findAdminRoles(guild) {
 async function updateServerData() {
   client.guilds.cache.forEach(async (guild) => {
     try {
-      const guildConfig = getGuildConfig(guild.id) || {};
+      const existingConfig = getGuildConfig(guild.id) || {};
 
-      if (!guildConfig.serverName) guildConfig.serverName = guild.name;
-
-      // Detect admin roles
-      if (!guildConfig.allowedRoles) {
-        const adminRoles = findAdminRoles(guild);
-        guildConfig.allowedRoles = adminRoles;
-      }
-
-      // Detect preferred locale for language
-      if (!guildConfig.language) {
-        const locale = guild.preferredLocale.toLowerCase().replace("-", "_"); // Convert pt-BR to pt_br
-        guildConfig.language = translations[locale] ? locale : "en_us";
-      }
-
-      // Check native AFK channel
-      if (!guildConfig.afkChannelId && guild.afkChannelId) {
-        const afkChannel = guild.channels.cache.get(guild.afkChannelId);
-        if (afkChannel) {
-          guildConfig.afkChannelId = afkChannel.id;
-          guildConfig.afkChannelName = afkChannel.name;
-        }
-      }
-
-      // Set default AFK timeout if not set
-      if (guildConfig.afkTimeout === undefined) {
-        guildConfig.afkTimeout = 5; // Default timeout of 5 minutes if not set
-      }
+      const guildConfig = {
+        ...existingConfig,
+        serverName: existingConfig.serverName || guild.name,
+        language:
+          existingConfig.language ||
+          guild.preferredLocale.toLowerCase().replace("-", "_") ||
+          "en_us",
+        allowedRoles: existingConfig.allowedRoles || findAdminRoles(guild),
+        afkChannelId: existingConfig.afkChannelId || guild.afkChannelId,
+        afkChannelName:
+          existingConfig.afkChannelName ||
+          (guild.afkChannelId
+            ? guild.channels.cache.get(guild.afkChannelId)?.name
+            : null),
+        afkTimeout:
+          existingConfig.afkTimeout !== undefined
+            ? existingConfig.afkTimeout
+            : 5,
+      };
 
       saveGuildConfig(guild.id, guildConfig);
     } catch (error) {
