@@ -167,10 +167,10 @@ const rest = new REST({ version: "10" }).setToken(BOT_TOKEN);
             description: t(null, "setup_language_description"),
             type: 3, // STRING
             required: true,
-            choices: [
-              { name: "English", value: "en_us" },
-              { name: "Português", value: "pt_br" },
-            ],
+            choices: Object.keys(translations).map((lang) => ({
+              name: lang.toUpperCase(),
+              value: lang,
+            })),
           },
           {
             name: "afk_timeout",
@@ -224,10 +224,10 @@ const rest = new REST({ version: "10" }).setToken(BOT_TOKEN);
             description: t(null, "setlang_language_description"),
             type: 3, // STRING
             required: true,
-            choices: [
-              { name: "English", value: "en_us" },
-              { name: "Português", value: "pt_br" },
-            ],
+            choices: Object.keys(translations).map((lang) => ({
+              name: lang.toUpperCase(),
+              value: lang,
+            })),
           },
         ],
       },
