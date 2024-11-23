@@ -53,12 +53,12 @@ function saveGuildConfig(guildId, config) {
     INSERT INTO guilds (guild_id, server_name, afk_channel_id, afk_channel_name, allowed_roles, language, afk_timeout)
     VALUES (@guildId, @serverName, @afkChannelId, @afkChannelName, @allowedRoles, @language, @afkTimeout)
     ON CONFLICT(guild_id) DO UPDATE SET
-      server_name = COALESCE(excluded.server_name, guilds.server_name),
-      afk_channel_id = COALESCE(excluded.afk_channel_id, guilds.afk_channel_id),
-      afk_channel_name = COALESCE(excluded.afk_channel_name, guilds.afk_channel_name),
-      allowed_roles = COALESCE(excluded.allowed_roles, guilds.allowed_roles),
-      language = COALESCE(excluded.language, guilds.language),
-      afk_timeout = COALESCE(excluded.afk_timeout, guilds.afk_timeout)
+      server_name = COALESCE(@serverName, guilds.server_name),
+      afk_channel_id = COALESCE(@afkChannelId, guilds.afk_channel_id),
+      afk_channel_name = COALESCE(@afkChannelName, guilds.afk_channel_name),
+      allowed_roles = COALESCE(@allowedRoles, guilds.allowed_roles),
+      language = COALESCE(@language, guilds.language),
+      afk_timeout = COALESCE(@afkTimeout, guilds.afk_timeout)
   `);
 
   stmt.run({
