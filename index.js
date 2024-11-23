@@ -53,11 +53,11 @@ function saveGuildConfig(guildId, config) {
     INSERT INTO guilds (guild_id, server_name, afk_channel_id, afk_channel_name, allowed_roles, language, afk_timeout)
     VALUES (@guildId, @serverName, @afkChannelId, @afkChannelName, @allowedRoles, @language, @afkTimeout)
     ON CONFLICT(guild_id) DO UPDATE SET
-      server_name = COALESCE(@serverName, guilds.server_name),
-      afk_channel_id = COALESCE(@afkChannelId, guilds.afk_channel_id),
-      afk_channel_name = COALESCE(@afkChannelName, guilds.afk_channel_name),
-      allowed_roles = COALESCE(@allowedRoles, guilds.allowed_roles),
-      language = COALESCE(@language, guilds.language),
+      server_name = COALESCE(NULLIF(@serverName, ''), guilds.server_name),
+      afk_channel_id = COALESCE(NULLIF(@afkChannelId, ''), guilds.afk_channel_id),
+      afk_channel_name = COALESCE(NULLIF(@afkChannelName, ''), guilds.afk_channel_name),
+      allowed_roles = COALESCE(NULLIF(@allowedRoles, ''), guilds.allowed_roles),
+      language = COALESCE(NULLIF(@language, ''), guilds.language),
       afk_timeout = COALESCE(@afkTimeout, guilds.afk_timeout)
   `);
 
@@ -281,19 +281,26 @@ async function updateServerData() {
     try {
       const guildConfig = getGuildConfig(guild.id) || {};
 
+      let updated = false;
+
       // Update values only if they are not set already
-      if (!guildConfig.serverName) guildConfig.serverName = guild.name;
+      if (!guildConfig.serverName) {
+        guildConfig.serverName = guild.name;
+        updated = true;
+      }
 
       // Detect admin roles only if allowedRoles is not set
       if (!guildConfig.allowedRoles || guildConfig.allowedRoles.length === 0) {
         const adminRoles = findAdminRoles(guild);
         guildConfig.allowedRoles = adminRoles;
+        updated = true;
       }
 
       // Detect preferred locale for language only if language is not set
       if (!guildConfig.language) {
         const locale = guild.preferredLocale.toLowerCase().replace("-", "_"); // Convert pt-BR to pt_br
         guildConfig.language = translations[locale] ? locale : "en_us";
+        updated = true;
       }
 
       // Check native AFK channel only if afkChannelId is not set
@@ -302,15 +309,19 @@ async function updateServerData() {
         if (afkChannel) {
           guildConfig.afkChannelId = afkChannel.id;
           guildConfig.afkChannelName = afkChannel.name;
+          updated = true;
         }
       }
 
       // Set default AFK timeout if not set
       if (guildConfig.afkTimeout === undefined) {
         guildConfig.afkTimeout = 5; // Default timeout of 5 minutes if not set
+        updated = true;
       }
 
-      saveGuildConfig(guild.id, guildConfig);
+      if (updated) {
+        saveGuildConfig(guild.id, guildConfig);
+      }
     } catch (error) {
       console.error(`Error updating server data for guild ${guild.id}:`, error);
     }
