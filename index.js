@@ -132,17 +132,12 @@ const rest = new REST({ version: "10" }).setToken(BOT_TOKEN);
     const commands = [
       {
         name: "setup",
-        description: "Set up the AFK channel, roles, and language for the bot.",
+        description:
+          "Set up the AFK channel, language, and timeout for the bot.",
         options: [
           {
             name: "channel",
             description: "Set the AFK channel.",
-            type: 3, // STRING
-            required: true,
-          },
-          {
-            name: "roles",
-            description: "Set the roles allowed to configure the bot.",
             type: 3, // STRING
             required: true,
           },
@@ -179,18 +174,6 @@ const rest = new REST({ version: "10" }).setToken(BOT_TOKEN);
           {
             name: "channel",
             description: "The voice channel to set as AFK.",
-            type: 3, // STRING
-            required: true,
-          },
-        ],
-      },
-      {
-        name: "setroles",
-        description: "Set the roles allowed to configure the bot.",
-        options: [
-          {
-            name: "roles",
-            description: "The roles to be allowed (comma-separated).",
             type: 3, // STRING
             required: true,
           },
@@ -246,7 +229,6 @@ client.on("interactionCreate", async (interaction) => {
 
   if (commandName === "setup") {
     const channelInput = interaction.options.getString("channel");
-    const rolesInput = interaction.options.getString("roles");
     const selectedLanguage = interaction.options.getString("language");
     const afkTimeout = interaction.options.getString("afk_timeout");
 
@@ -258,26 +240,13 @@ client.on("interactionCreate", async (interaction) => {
       });
     }
 
-    const extraRoles = rolesInput
-      .split(",")
-      .map((r) => r.trim())
-      .filter(
-        (role) =>
-          !!interaction.guild.roles.cache.find(
-            (x) => x.name.toLowerCase() === role.toLowerCase()
-          )
-      );
+    const adminRoles = findAdminRoles(interaction.guild);
 
     const config = {
       serverName: interaction.guild.name,
       afkChannelId: afkChannel.id,
       afkChannelName: afkChannel.name,
-      allowedRoles: extraRoles.map((roleName) => {
-        const role = interaction.guild.roles.cache.find(
-          (r) => r.name.toLowerCase() === roleName.toLowerCase()
-        );
-        return role ? { id: role.id, name: role.name } : null;
-      }),
+      allowedRoles: adminRoles,
       language: selectedLanguage,
       afkTimeout: parseInt(afkTimeout, 10),
     };
@@ -386,25 +355,59 @@ client.on("interactionCreate", async (interaction) => {
       ephemeral: true,
     });
   }
+});
 
-  if (commandName === "setroles") {
-    const rolesInput = interaction.options.getString("roles");
-    const extraRoles = rolesInput.split(",").map((r) => r.trim());
+// Track voice states to manage AFK channel behavior
+client.on("voiceStateUpdate", async (oldState, newState) => {
+  try {
+    const guildConfig = getGuildConfig(newState.guild.id);
+    if (!guildConfig || !guildConfig.afkChannelId) return;
 
-    const guildConfig = getGuildConfig(guildId) || {};
-    guildConfig.allowedRoles = extraRoles.map((roleName) => {
-      const role = interaction.guild.roles.cache.find(
-        (r) => r.name.toLowerCase() === roleName.toLowerCase()
+    const afkChannelId = guildConfig.afkChannelId;
+    const afkTimeout = guildConfig.afkTimeout * 60 * 1000;
+
+    // Check if the user joined the configured AFK channel
+    if (newState.channelId === afkChannelId) {
+      if (newState.member.id === client.user.id) return; // Ignore the bot itself
+
+      // Check bot permissions in the channel
+      const botPermissions = newState.channel.permissionsFor(
+        newState.guild.members.me
       );
-      return role ? { id: role.id, name: role.name } : null;
-    });
+      if (!botPermissions.has(PermissionsBitField.Flags.MoveMembers)) {
+        return;
+      }
 
-    saveGuildConfig(guildId, guildConfig);
+      // Disconnect the user
+      await newState.disconnect();
+    }
 
-    return interaction.reply({
-      content: `Allowed roles updated.`,
-      ephemeral: true,
-    });
+    // Check if a user is in a voice channel and muted/deafened for more than the configured timeout
+    if (
+      newState.channelId &&
+      newState.channelId !== afkChannelId &&
+      newState.selfMute &&
+      newState.selfDeaf
+    ) {
+      setTimeout(async () => {
+        const currentState = newState.guild.members.cache.get(
+          newState.id
+        ).voice;
+        if (
+          currentState.channelId === newState.channelId &&
+          currentState.selfMute &&
+          currentState.selfDeaf
+        ) {
+          // Move user to AFK channel if still muted and deafened after the configured timeout
+          await currentState.setChannel(afkChannelId);
+        }
+      }, afkTimeout); // Configured AFK timeout
+    }
+  } catch (error) {
+    console.error(
+      `Error handling voice state update for guild ${newState.guild.id}:`,
+      error
+    );
   }
 });
 
@@ -416,6 +419,17 @@ function findVoiceChannel(guild, input) {
       (channel.name.toLowerCase() === input.toLowerCase() ||
         channel.id === input)
   );
+}
+
+// Helper function to find roles with "Administrator" permission
+function findAdminRoles(guild) {
+  return guild.roles.cache
+    .filter(
+      (role) =>
+        role.permissions.has(PermissionsBitField.Flags.Administrator) &&
+        !role.managed
+    )
+    .map((role) => ({ id: role.id, name: role.name }));
 }
 
 client.login(BOT_TOKEN);
