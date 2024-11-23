@@ -65,12 +65,12 @@ function saveGuildConfig(guildId, config) {
 
     const stmt = db.prepare(`
       UPDATE guilds SET
-        server_name = @serverName,
-        afk_channel_id = @afkChannelId,
-        afk_channel_name = @afkChannelName,
-        allowed_roles = @allowedRoles,
-        language = @language,
-        afk_timeout = @afkTimeout
+        server_name = COALESCE(@serverName, server_name),
+        afk_channel_id = COALESCE(@afkChannelId, afk_channel_id),
+        afk_channel_name = COALESCE(@afkChannelName, afk_channel_name),
+        allowed_roles = COALESCE(@allowedRoles, allowed_roles),
+        language = COALESCE(@language, language),
+        afk_timeout = COALESCE(@afkTimeout, afk_timeout)
       WHERE guild_id = @guildId
     `);
 
@@ -81,7 +81,7 @@ function saveGuildConfig(guildId, config) {
   } else {
     // Insert new config if it doesn't exist
     const stmt = db.prepare(`
-      INSERT OR IGNORE INTO guilds (guild_id, server_name, afk_channel_id, afk_channel_name, allowed_roles, language, afk_timeout)
+      INSERT INTO guilds (guild_id, server_name, afk_channel_id, afk_channel_name, allowed_roles, language, afk_timeout)
       VALUES (@guildId, @serverName, @afkChannelId, @afkChannelName, @allowedRoles, @language, @afkTimeout)
     `);
 
