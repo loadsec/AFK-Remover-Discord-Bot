@@ -36,19 +36,21 @@ function saveGuildConfig(guildId, config) {
     INSERT INTO guilds (guild_id, server_name, afk_channel_id, afk_channel_name, allowed_roles, language, afk_timeout)
     VALUES (@guildId, @serverName, @afkChannelId, @afkChannelName, @allowedRoles, @language, @afkTimeout)
     ON CONFLICT(guild_id) DO UPDATE SET
-      server_name = @serverName,
-      afk_channel_id = @afkChannelId,
-      afk_channel_name = @afkChannelName,
-      allowed_roles = @allowedRoles,
-      language = @language,
-      afk_timeout = @afkTimeout
+      server_name = COALESCE(@serverName, server_name),
+      afk_channel_id = COALESCE(@afkChannelId, afk_channel_id),
+      afk_channel_name = COALESCE(@afkChannelName, afk_channel_name),
+      allowed_roles = COALESCE(@allowedRoles, allowed_roles),
+      language = COALESCE(@language, language),
+      afk_timeout = COALESCE(@afkTimeout, afk_timeout)
   `);
   stmt.run({
     guildId,
     serverName: config.serverName,
     afkChannelId: config.afkChannelId,
     afkChannelName: config.afkChannelName,
-    allowedRoles: JSON.stringify(config.allowedRoles),
+    allowedRoles: config.allowedRoles
+      ? JSON.stringify(config.allowedRoles)
+      : null,
     language: config.language,
     afkTimeout: config.afkTimeout,
   });
@@ -218,17 +220,6 @@ function findVoiceChannel(guild, input) {
   );
 }
 
-// Helper function to find roles with "Administrator" permission
-function findAdminRoles(guild) {
-  return guild.roles.cache
-    .filter(
-      (role) =>
-        role.permissions.has(PermissionsBitField.Flags.Administrator) &&
-        !role.managed
-    )
-    .map((role) => ({ id: role.id, name: role.name }));
-}
-
 // Handle interaction commands
 client.on("interactionCreate", async (interaction) => {
   if (!interaction.isCommand()) return;
@@ -248,13 +239,10 @@ client.on("interactionCreate", async (interaction) => {
       });
     }
 
-    const adminRoles = findAdminRoles(interaction.guild);
-
     const config = {
       serverName: interaction.guild.name,
       afkChannelId: afkChannel.id,
       afkChannelName: afkChannel.name,
-      allowedRoles: adminRoles,
       language: selectedLanguage,
       afkTimeout: parseInt(afkTimeout, 10),
     };
@@ -283,15 +271,6 @@ client.on("interactionCreate", async (interaction) => {
         {
           name: "AFK Channel",
           value: guildConfig.afkChannelName || "Not set",
-          inline: true,
-        },
-        {
-          name: "Allowed Roles",
-          value: guildConfig.allowedRoles.length
-            ? guildConfig.allowedRoles
-                .map((role) => `<@&${role.id}>`)
-                .join(", ")
-            : "None",
           inline: true,
         },
         {
@@ -374,11 +353,9 @@ client.on("voiceStateUpdate", async (oldState, newState) => {
     const afkChannelId = guildConfig.afkChannelId;
     const afkTimeout = guildConfig.afkTimeout * 60 * 1000;
 
-    // Check if the user joined the configured AFK channel
     if (newState.channelId === afkChannelId) {
-      if (newState.member.id === client.user.id) return; // Ignore the bot itself
+      if (newState.member.id === client.user.id) return;
 
-      // Check bot permissions in the channel
       const botPermissions = newState.channel.permissionsFor(
         newState.guild.members.me
       );
@@ -386,11 +363,9 @@ client.on("voiceStateUpdate", async (oldState, newState) => {
         return;
       }
 
-      // Disconnect the user
       await newState.disconnect();
     }
 
-    // Check if a user is in a voice channel and muted/deafened for more than the configured timeout
     if (
       newState.channelId &&
       newState.channelId !== afkChannelId &&
@@ -406,10 +381,9 @@ client.on("voiceStateUpdate", async (oldState, newState) => {
           currentState.selfMute &&
           currentState.selfDeaf
         ) {
-          // Move user to AFK channel if still muted and deafened after the configured timeout
           await currentState.setChannel(afkChannelId);
         }
-      }, afkTimeout); // Configured AFK timeout
+      }, afkTimeout);
     }
   } catch (error) {
     console.error(
