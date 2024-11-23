@@ -81,7 +81,7 @@ function saveGuildConfig(guildId, config) {
   } else {
     // Insert new config if it doesn't exist
     const stmt = db.prepare(`
-      INSERT INTO guilds (guild_id, server_name, afk_channel_id, afk_channel_name, allowed_roles, language, afk_timeout)
+      INSERT OR IGNORE INTO guilds (guild_id, server_name, afk_channel_id, afk_channel_name, allowed_roles, language, afk_timeout)
       VALUES (@guildId, @serverName, @afkChannelId, @afkChannelName, @allowedRoles, @language, @afkTimeout)
     `);
 
