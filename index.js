@@ -32,38 +32,25 @@ db.exec(`
 
 // Helper function to save guild config to SQLite
 function saveGuildConfig(guildId, config) {
-  const existingConfig = getGuildConfig(guildId) || {};
-
-  // Merge new configuration with the existing one
-  const updatedConfig = {
-    serverName: config.serverName || existingConfig.serverName,
-    afkChannelId: config.afkChannelId || existingConfig.afkChannelId,
-    afkChannelName: config.afkChannelName || existingConfig.afkChannelName,
-    allowedRoles: config.allowedRoles
-      ? JSON.stringify(config.allowedRoles)
-      : existingConfig.allowedRoles,
-    language: config.language || existingConfig.language || "en_us",
-    afkTimeout:
-      config.afkTimeout !== undefined
-        ? config.afkTimeout
-        : existingConfig.afkTimeout || 5,
-  };
-
   const stmt = db.prepare(`
     INSERT INTO guilds (guild_id, server_name, afk_channel_id, afk_channel_name, allowed_roles, language, afk_timeout)
     VALUES (@guildId, @serverName, @afkChannelId, @afkChannelName, @allowedRoles, @language, @afkTimeout)
     ON CONFLICT(guild_id) DO UPDATE SET
-      server_name = excluded.server_name,
-      afk_channel_id = excluded.afk_channel_id,
-      afk_channel_name = excluded.afk_channel_name,
-      allowed_roles = excluded.allowed_roles,
-      language = excluded.language,
-      afk_timeout = excluded.afk_timeout
+      server_name = @serverName,
+      afk_channel_id = @afkChannelId,
+      afk_channel_name = @afkChannelName,
+      allowed_roles = @allowedRoles,
+      language = @language,
+      afk_timeout = @afkTimeout
   `);
-
   stmt.run({
     guildId,
-    ...updatedConfig,
+    serverName: config.serverName,
+    afkChannelId: config.afkChannelId,
+    afkChannelName: config.afkChannelName,
+    allowedRoles: JSON.stringify(config.allowedRoles),
+    language: config.language,
+    afkTimeout: config.afkTimeout,
   });
 }
 
@@ -220,6 +207,27 @@ const rest = new REST({ version: "10" }).setToken(BOT_TOKEN);
     console.error("Error registering commands:", error);
   }
 })();
+
+// Helper function to find a voice channel by name or ID
+function findVoiceChannel(guild, input) {
+  return guild.channels.cache.find(
+    (channel) =>
+      channel.type === 2 && // Ensure it's a voice channel
+      (channel.name.toLowerCase() === input.toLowerCase() ||
+        channel.id === input)
+  );
+}
+
+// Helper function to find roles with "Administrator" permission
+function findAdminRoles(guild) {
+  return guild.roles.cache
+    .filter(
+      (role) =>
+        role.permissions.has(PermissionsBitField.Flags.Administrator) &&
+        !role.managed
+    )
+    .map((role) => ({ id: role.id, name: role.name }));
+}
 
 // Handle interaction commands
 client.on("interactionCreate", async (interaction) => {
@@ -410,26 +418,5 @@ client.on("voiceStateUpdate", async (oldState, newState) => {
     );
   }
 });
-
-// Helper function to find a voice channel by name or ID
-function findVoiceChannel(guild, input) {
-  return guild.channels.cache.find(
-    (channel) =>
-      channel.type === 2 && // Ensure it's a voice channel
-      (channel.name.toLowerCase() === input.toLowerCase() ||
-        channel.id === input)
-  );
-}
-
-// Helper function to find roles with "Administrator" permission
-function findAdminRoles(guild) {
-  return guild.roles.cache
-    .filter(
-      (role) =>
-        role.permissions.has(PermissionsBitField.Flags.Administrator) &&
-        !role.managed
-    )
-    .map((role) => ({ id: role.id, name: role.name }));
-}
 
 client.login(BOT_TOKEN);
