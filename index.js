@@ -32,32 +32,27 @@ db.exec(`
 
 // Helper function to save guild config to SQLite
 function saveGuildConfig(guildId, config) {
-  const existingConfig = getGuildConfig(guildId);
-
   const updatedConfig = {
-    serverName: config.serverName || existingConfig?.serverName,
-    afkChannelId: config.afkChannelId || existingConfig?.afkChannelId,
-    afkChannelName: config.afkChannelName || existingConfig?.afkChannelName,
+    serverName: config.serverName ?? null,
+    afkChannelId: config.afkChannelId ?? null,
+    afkChannelName: config.afkChannelName ?? null,
     allowedRoles: config.allowedRoles
       ? JSON.stringify(config.allowedRoles)
-      : existingConfig?.allowedRoles,
-    language: config.language || existingConfig?.language || "en_us",
-    afkTimeout:
-      config.afkTimeout !== undefined
-        ? config.afkTimeout
-        : existingConfig?.afkTimeout || 5,
+      : null,
+    language: config.language ?? "en_us",
+    afkTimeout: config.afkTimeout ?? 5,
   };
 
   const stmt = db.prepare(`
     INSERT INTO guilds (guild_id, server_name, afk_channel_id, afk_channel_name, allowed_roles, language, afk_timeout)
     VALUES (@guildId, @serverName, @afkChannelId, @afkChannelName, @allowedRoles, @language, @afkTimeout)
     ON CONFLICT(guild_id) DO UPDATE SET
-      server_name = excluded.server_name,
-      afk_channel_id = excluded.afk_channel_id,
-      afk_channel_name = excluded.afk_channel_name,
-      allowed_roles = excluded.allowed_roles,
-      language = excluded.language,
-      afk_timeout = excluded.afk_timeout
+      server_name = COALESCE(excluded.server_name, guilds.server_name),
+      afk_channel_id = COALESCE(excluded.afk_channel_id, guilds.afk_channel_id),
+      afk_channel_name = COALESCE(excluded.afk_channel_name, guilds.afk_channel_name),
+      allowed_roles = COALESCE(excluded.allowed_roles, guilds.allowed_roles),
+      language = COALESCE(excluded.language, guilds.language),
+      afk_timeout = COALESCE(excluded.afk_timeout, guilds.afk_timeout)
   `);
 
   stmt.run({
