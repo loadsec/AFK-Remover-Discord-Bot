@@ -32,33 +32,71 @@ db.exec(`
 
 // Helper function to save guild config to SQLite
 function saveGuildConfig(guildId, config) {
-  const updatedConfig = {
-    serverName: config.serverName ?? null,
-    afkChannelId: config.afkChannelId ?? null,
-    afkChannelName: config.afkChannelName ?? null,
-    allowedRoles: config.allowedRoles
-      ? JSON.stringify(config.allowedRoles)
-      : null,
-    language: config.language ?? "en_us",
-    afkTimeout: config.afkTimeout ?? 5,
-  };
+  const existingConfig = getGuildConfig(guildId);
 
-  const stmt = db.prepare(`
-    INSERT INTO guilds (guild_id, server_name, afk_channel_id, afk_channel_name, allowed_roles, language, afk_timeout)
-    VALUES (@guildId, @serverName, @afkChannelId, @afkChannelName, @allowedRoles, @language, @afkTimeout)
-    ON CONFLICT(guild_id) DO UPDATE SET
-      server_name = COALESCE(excluded.server_name, guilds.server_name),
-      afk_channel_id = COALESCE(excluded.afk_channel_id, guilds.afk_channel_id),
-      afk_channel_name = COALESCE(excluded.afk_channel_name, guilds.afk_channel_name),
-      allowed_roles = COALESCE(excluded.allowed_roles, guilds.allowed_roles),
-      language = COALESCE(excluded.language, guilds.language),
-      afk_timeout = COALESCE(excluded.afk_timeout, guilds.afk_timeout)
-  `);
+  if (existingConfig) {
+    // Update only if values are different
+    const updatedConfig = {
+      serverName:
+        config.serverName !== undefined
+          ? config.serverName
+          : existingConfig.serverName,
+      afkChannelId:
+        config.afkChannelId !== undefined
+          ? config.afkChannelId
+          : existingConfig.afkChannelId,
+      afkChannelName:
+        config.afkChannelName !== undefined
+          ? config.afkChannelName
+          : existingConfig.afkChannelName,
+      allowedRoles:
+        config.allowedRoles !== undefined
+          ? JSON.stringify(config.allowedRoles)
+          : existingConfig.allowedRoles,
+      language:
+        config.language !== undefined
+          ? config.language
+          : existingConfig.language,
+      afkTimeout:
+        config.afkTimeout !== undefined
+          ? config.afkTimeout
+          : existingConfig.afkTimeout,
+    };
 
-  stmt.run({
-    guildId,
-    ...updatedConfig,
-  });
+    const stmt = db.prepare(`
+      UPDATE guilds SET
+        server_name = @serverName,
+        afk_channel_id = @afkChannelId,
+        afk_channel_name = @afkChannelName,
+        allowed_roles = @allowedRoles,
+        language = @language,
+        afk_timeout = @afkTimeout
+      WHERE guild_id = @guildId
+    `);
+
+    stmt.run({
+      guildId,
+      ...updatedConfig,
+    });
+  } else {
+    // Insert new config if it doesn't exist
+    const stmt = db.prepare(`
+      INSERT INTO guilds (guild_id, server_name, afk_channel_id, afk_channel_name, allowed_roles, language, afk_timeout)
+      VALUES (@guildId, @serverName, @afkChannelId, @afkChannelName, @allowedRoles, @language, @afkTimeout)
+    `);
+
+    stmt.run({
+      guildId,
+      serverName: config.serverName ?? null,
+      afkChannelId: config.afkChannelId ?? null,
+      afkChannelName: config.afkChannelName ?? null,
+      allowedRoles: config.allowedRoles
+        ? JSON.stringify(config.allowedRoles)
+        : null,
+      language: config.language ?? "en_us",
+      afkTimeout: config.afkTimeout ?? 5,
+    });
+  }
 }
 
 // Helper function to get guild config from SQLite
