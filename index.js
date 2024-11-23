@@ -148,64 +148,68 @@ const rest = new REST({ version: "10" }).setToken(BOT_TOKEN);
     const commands = [
       {
         name: "setup",
-        description: t(null, "setup_description"),
+        description: "Set up the bot configuration for your server",
         options: [
           {
             name: "channel",
-            description: t(null, "setup_channel_description"),
-            type: 3, // STRING
+            description: "The channel for AFK",
+            type: 7, // CHANNEL
             required: true,
           },
           {
             name: "roles",
-            description: t(null, "setup_roles_description"),
+            description: "The roles allowed to manage settings",
             type: 3, // STRING
             required: true,
           },
           {
             name: "language",
-            description: t(null, "setup_language_description"),
-            type: 3, // STRING
-            required: true,
-          },
-          {
-            name: "afk_timeout",
-            description: t(null, "setup_afk_timeout_description"),
+            description: "The language to use",
             type: 3, // STRING
             required: true,
             choices: [
-              { name: "1 minute", value: "1" },
-              { name: "5 minutes", value: "5" },
-              { name: "15 minutes", value: "15" },
-              { name: "30 minutes", value: "30" },
-              { name: "1 hour", value: "60" },
+              { name: "English", value: "en_us" },
+              { name: "Português", value: "pt_br" },
+            ],
+          },
+          {
+            name: "afk_timeout",
+            description: "The AFK timeout duration",
+            type: 4, // INTEGER
+            required: true,
+            choices: [
+              { name: "1 minute", value: 1 },
+              { name: "5 minutes", value: 5 },
+              { name: "15 minutes", value: 15 },
+              { name: "30 minutes", value: 30 },
+              { name: "1 hour", value: 60 },
             ],
           },
         ],
       },
       {
         name: "afkinfo",
-        description: t(null, "afkinfo_description"),
+        description: "Display the current AFK settings",
       },
       {
         name: "setafk",
-        description: t(null, "setafk_description"),
+        description: "Set the AFK channel",
         options: [
           {
             name: "channel",
-            description: t(null, "setafk_channel_description"),
-            type: 3, // STRING
+            description: "The channel to use for AFK",
+            type: 7, // CHANNEL
             required: true,
           },
         ],
       },
       {
         name: "setroles",
-        description: t(null, "setroles_description"),
+        description: "Set roles that can manage bot settings",
         options: [
           {
             name: "roles",
-            description: t(null, "setroles_roles_description"),
+            description: "The roles to allow",
             type: 3, // STRING
             required: true,
           },
@@ -213,31 +217,35 @@ const rest = new REST({ version: "10" }).setToken(BOT_TOKEN);
       },
       {
         name: "setlang",
-        description: t(null, "setlang_description"),
+        description: "Set the language for the bot",
         options: [
           {
             name: "language",
-            description: t(null, "setlang_language_description"),
+            description: "The language to set",
             type: 3, // STRING
-            required: false,
+            required: true,
+            choices: [
+              { name: "English", value: "en_us" },
+              { name: "Português", value: "pt_br" },
+            ],
           },
         ],
       },
       {
         name: "afklimit",
-        description: t(null, "afklimit_description"),
+        description: "Set the AFK timeout duration",
         options: [
           {
             name: "afk_timeout",
-            description: t(null, "afklimit_afk_timeout_description"),
-            type: 3, // STRING
+            description: "The AFK timeout duration",
+            type: 4, // INTEGER
             required: true,
             choices: [
-              { name: "1 minute", value: "1" },
-              { name: "5 minutes", value: "5" },
-              { name: "15 minutes", value: "15" },
-              { name: "30 minutes", value: "30" },
-              { name: "1 hour", value: "60" },
+              { name: "1 minute", value: 1 },
+              { name: "5 minutes", value: 5 },
+              { name: "15 minutes", value: 15 },
+              { name: "30 minutes", value: 30 },
+              { name: "1 hour", value: 60 },
             ],
           },
         ],
@@ -252,140 +260,118 @@ const rest = new REST({ version: "10" }).setToken(BOT_TOKEN);
   }
 })();
 
-// Handle /afkinfo and /afklimit commands
+// Handle slash command interactions
 client.on("interactionCreate", async (interaction) => {
   if (!interaction.isCommand()) return;
 
   const { commandName, guildId } = interaction;
-  if (commandName === "afkinfo") {
-    const guildConfig = getGuildConfig(guildId);
-    if (!guildConfig) {
+  const guildConfig = getGuildConfig(guildId) || {};
+
+  switch (commandName) {
+    case "setup": {
+      const channel = interaction.options.getChannel("channel");
+      const roles = interaction.options.getString("roles");
+      const language = interaction.options.getString("language");
+      const afkTimeout = interaction.options.getInteger("afk_timeout");
+
+      guildConfig.afkChannelId = channel.id;
+      guildConfig.afkChannelName = channel.name;
+      guildConfig.allowedRoles = roles.split(",").map((role) => role.trim());
+      guildConfig.language = language;
+      guildConfig.afkTimeout = afkTimeout;
+
+      saveGuildConfig(guildId, guildConfig);
+
       return interaction.reply({
-        content: t(guildId, "no_configuration"),
+        content: "Configuration saved successfully!",
         ephemeral: true,
       });
     }
+    case "afkinfo": {
+      if (!guildConfig) {
+        return interaction.reply({
+          content: "No configuration found. Please run /setup first.",
+          ephemeral: true,
+        });
+      }
 
-    const afkInfoEmbed = new EmbedBuilder()
-      .setColor(0x0099ff)
-      .setTitle(t(guildId, "afkinfo_title"))
-      .addFields(
-        {
-          name: t(guildId, "afkinfo_channel"),
-          value: guildConfig.afkChannelName || t(guildId, "afkinfo_not_set"),
-          inline: true,
-        },
-        {
-          name: t(guildId, "afkinfo_roles"),
-          value: guildConfig.allowedRoles.length
-            ? guildConfig.allowedRoles
-                .map((role) => `<@&${role.id}>`)
-                .join(", ")
-            : t(guildId, "afkinfo_no_roles"),
-          inline: true,
-        },
-        {
-          name: t(guildId, "afkinfo_language"),
-          value: guildConfig.language.toUpperCase(),
-          inline: true,
-        },
-        {
-          name: t(guildId, "afkinfo_timeout"),
-          value: guildConfig.afkTimeout
-            ? t(guildId, "afk_timeout_minutes", {
-                timeout: guildConfig.afkTimeout,
-              })
-            : t(guildId, "afkinfo_not_set"),
-          inline: true,
-        }
-      )
-      .setFooter({ text: t(guildId, "afkinfo_footer") });
-
-    return interaction.reply({ embeds: [afkInfoEmbed], ephemeral: true });
-  }
-
-  if (commandName === "afklimit") {
-    const afkTimeout = interaction.options.getString("afk_timeout");
-    const guildConfig = getGuildConfig(guildId);
-    if (!guildConfig) {
-      return interaction.reply({
-        content: t(guildId, "no_configuration"),
-        ephemeral: true,
-      });
-    }
-
-    // Update AFK timeout
-    guildConfig.afkTimeout = parseInt(afkTimeout, 10);
-    saveGuildConfig(guildId, guildConfig);
-
-    return interaction.reply({
-      content: t(guildId, "afk_timeout_updated", { timeout: afkTimeout }),
-      ephemeral: true,
-    });
-  }
-
-  if (commandName === "setlang") {
-    const selectedLanguage = interaction.options.getString("language");
-
-    // If no language is provided, show available languages
-    if (!selectedLanguage) {
-      const availableLanguages = Object.keys(translations)
-        .map((lang) => lang.toUpperCase())
-        .join(", ");
-      const availableLanguagesEmbed = new EmbedBuilder()
+      const afkInfoEmbed = new EmbedBuilder()
         .setColor(0x0099ff)
-        .setTitle(t(guildId, "available_languages_title"))
-        .setDescription(availableLanguages)
-        .setFooter({ text: t(guildId, "available_languages_footer") })
-        .setTimestamp();
-
-      return interaction.reply({
-        embeds: [availableLanguagesEmbed],
-        ephemeral: true,
-      });
-    }
-
-    // Validate language
-    if (!translations[selectedLanguage]) {
-      const availableLanguages = Object.keys(translations)
-        .map((lang) => lang.toUpperCase())
-        .join(", ");
-      const invalidLanguageEmbed = new EmbedBuilder()
-        .setColor(0xffa500)
-        .setTitle(t(guildId, "invalid_language_title"))
-        .setDescription(
-          `${t(guildId, "invalid_language")}
-
-**${t(guildId, "available_languages_label")}:**
-${availableLanguages}`
+        .setTitle("AFK Settings")
+        .addFields(
+          {
+            name: "AFK Channel",
+            value: guildConfig.afkChannelName || "Not set",
+            inline: true,
+          },
+          {
+            name: "Allowed Roles",
+            value: guildConfig.allowedRoles.length
+              ? guildConfig.allowedRoles.join(", ")
+              : "No roles set",
+            inline: true,
+          },
+          {
+            name: "Language",
+            value: guildConfig.language.toUpperCase(),
+            inline: true,
+          },
+          {
+            name: "AFK Timeout",
+            value: `${guildConfig.afkTimeout} minute(s)` || "Not set",
+            inline: true,
+          }
         )
-        .setFooter({ text: t(guildId, "invalid_language_footer") });
+        .setFooter({ text: "Use /setup to modify these settings." });
+
+      return interaction.reply({ embeds: [afkInfoEmbed], ephemeral: true });
+    }
+    case "setafk": {
+      const channel = interaction.options.getChannel("channel");
+      guildConfig.afkChannelId = channel.id;
+      guildConfig.afkChannelName = channel.name;
+      saveGuildConfig(guildId, guildConfig);
 
       return interaction.reply({
-        embeds: [invalidLanguageEmbed],
+        content: `AFK channel set to ${channel.name}`,
         ephemeral: true,
       });
     }
+    case "setroles": {
+      const roles = interaction.options.getString("roles");
+      guildConfig.allowedRoles = roles.split(",").map((role) => role.trim());
+      saveGuildConfig(guildId, guildConfig);
 
-    // Update language in configuration
-    const guildConfig = getGuildConfig(guildId) || {};
-    guildConfig.language = selectedLanguage;
-    saveGuildConfig(guildId, guildConfig);
+      return interaction.reply({
+        content: "Allowed roles updated successfully!",
+        ephemeral: true,
+      });
+    }
+    case "setlang": {
+      const language = interaction.options.getString("language");
+      guildConfig.language = language;
+      saveGuildConfig(guildId, guildConfig);
 
-    const languageSetEmbed = new EmbedBuilder()
-      .setColor(0x00ff00)
-      .setTitle(t(guildId, "language_set_title"))
-      .setDescription(
-        t(guildId, "language_set", {
-          language: selectedLanguage.toUpperCase(),
-        })
-      )
-      .setFooter({ text: t(guildId, "language_set_success_footer") });
+      return interaction.reply({
+        content: `Language set to ${language.toUpperCase()}`,
+        ephemeral: true,
+      });
+    }
+    case "afklimit": {
+      const afkTimeout = interaction.options.getInteger("afk_timeout");
+      guildConfig.afkTimeout = afkTimeout;
+      saveGuildConfig(guildId, guildConfig);
 
-    return interaction.reply({
-      embeds: [languageSetEmbed],
-      ephemeral: true,
-    });
+      return interaction.reply({
+        content: `AFK timeout set to ${afkTimeout} minute(s)`,
+        ephemeral: true,
+      });
+    }
+    default:
+      return interaction.reply({
+        content: "Unknown command.",
+        ephemeral: true,
+      });
   }
 });
 
