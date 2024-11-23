@@ -148,23 +148,23 @@ const rest = new REST({ version: "10" }).setToken(BOT_TOKEN);
     const commands = [
       {
         name: "setup",
-        description: "Set up the bot configuration for your server",
+        description: t(null, "setup_description"),
         options: [
           {
             name: "channel",
-            description: "The channel for AFK",
+            description: t(null, "setup_channel_description"),
             type: 7, // CHANNEL
             required: true,
           },
           {
             name: "roles",
-            description: "The roles allowed to manage settings",
+            description: t(null, "setup_roles_description"),
             type: 3, // STRING
             required: true,
           },
           {
             name: "language",
-            description: "The language to use",
+            description: t(null, "setup_language_description"),
             type: 3, // STRING
             required: true,
             choices: [
@@ -174,7 +174,7 @@ const rest = new REST({ version: "10" }).setToken(BOT_TOKEN);
           },
           {
             name: "afk_timeout",
-            description: "The AFK timeout duration",
+            description: t(null, "setup_afk_timeout_description"),
             type: 4, // INTEGER
             required: true,
             choices: [
@@ -189,15 +189,15 @@ const rest = new REST({ version: "10" }).setToken(BOT_TOKEN);
       },
       {
         name: "afkinfo",
-        description: "Display the current AFK settings",
+        description: t(null, "afkinfo_description"),
       },
       {
         name: "setafk",
-        description: "Set the AFK channel",
+        description: t(null, "setafk_description"),
         options: [
           {
             name: "channel",
-            description: "The channel to use for AFK",
+            description: t(null, "setafk_channel_description"),
             type: 7, // CHANNEL
             required: true,
           },
@@ -205,11 +205,11 @@ const rest = new REST({ version: "10" }).setToken(BOT_TOKEN);
       },
       {
         name: "setroles",
-        description: "Set roles that can manage bot settings",
+        description: t(null, "setroles_description"),
         options: [
           {
             name: "roles",
-            description: "The roles to allow",
+            description: t(null, "setroles_roles_description"),
             type: 3, // STRING
             required: true,
           },
@@ -217,11 +217,11 @@ const rest = new REST({ version: "10" }).setToken(BOT_TOKEN);
       },
       {
         name: "setlang",
-        description: "Set the language for the bot",
+        description: t(null, "setlang_description"),
         options: [
           {
             name: "language",
-            description: "The language to set",
+            description: t(null, "setlang_language_description"),
             type: 3, // STRING
             required: true,
             choices: [
@@ -233,11 +233,11 @@ const rest = new REST({ version: "10" }).setToken(BOT_TOKEN);
       },
       {
         name: "afklimit",
-        description: "Set the AFK timeout duration",
+        description: t(null, "afklimit_description"),
         options: [
           {
             name: "afk_timeout",
-            description: "The AFK timeout duration",
+            description: t(null, "afklimit_afk_timeout_description"),
             type: 4, // INTEGER
             required: true,
             choices: [
@@ -262,7 +262,7 @@ const rest = new REST({ version: "10" }).setToken(BOT_TOKEN);
 
 // Handle slash command interactions
 client.on("interactionCreate", async (interaction) => {
-  if (!interaction.isCommand()) return;
+  if (!interaction.isChatInputCommand()) return;
 
   const { commandName, guildId } = interaction;
   const guildConfig = getGuildConfig(guildId) || {};
