@@ -254,22 +254,93 @@ const rest = new REST({ version: "10" }).setToken(BOT_TOKEN);
   }
 })();
 
-// Removido: Função para auto-detectar configurações (servidor, canais, roles, etc.)
-// O usuário deve configurar o bot manualmente através dos comandos `/setup`, `/setlang`, `/setroles`, etc.
-
-// Handle interaction commands and save configurations as needed
+// Handle interaction commands
 client.on("interactionCreate", async (interaction) => {
   if (!interaction.isCommand()) return;
 
   const { commandName, guildId } = interaction;
-  // Aqui mantemos as funções do afkinfo, afklimit, setafk, setlang e setup de forma que seja necessário configurar manualmente via comando.
 
   if (commandName === "setup") {
-    // Código de configuração de setup (similar ao código atual que já tem a lógica manual)
-    // Removemos a lógica de detecção automática
+    const channelInput = interaction.options.getString("channel");
+    const rolesInput = interaction.options.getString("roles");
+    const selectedLanguage = interaction.options.getString("language");
+    const afkTimeout = interaction.options.getString("afk_timeout");
+
+    // Find AFK channel
+    const afkChannel = findVoiceChannel(interaction.guild, channelInput);
+    if (!afkChannel) {
+      return interaction.reply({
+        content: t(guildId, "invalid_channel"),
+        ephemeral: true,
+      });
+    }
+
+    // Find roles
+    const extraRoles = rolesInput
+      .split(",")
+      .map((r) => r.trim())
+      .filter(
+        (role) =>
+          !!interaction.guild.roles.cache.find(
+            (x) => x.name.toLowerCase() === role.toLowerCase()
+          )
+      );
+
+    // Save configuration
+    const config = {
+      serverName: interaction.guild.name,
+      afkChannelId: afkChannel.id,
+      afkChannelName: afkChannel.name,
+      allowedRoles: extraRoles.map((roleName) => {
+        const role = interaction.guild.roles.cache.find(
+          (r) => r.name.toLowerCase() === roleName.toLowerCase()
+        );
+        return role ? { id: role.id, name: role.name } : null;
+      }),
+      language: selectedLanguage,
+      afkTimeout: parseInt(afkTimeout, 10),
+    };
+
+    saveGuildConfig(guildId, config);
+
+    return interaction.reply({
+      content: t(guildId, "setup_complete"),
+      ephemeral: true,
+    });
   }
 
-  // Outras funções de configuração manual permanecem iguais.
+  if (commandName === "setlang") {
+    const selectedLanguage = interaction.options.getString("language");
+
+    if (!selectedLanguage) {
+      const availableLanguages = Object.keys(translations)
+        .map((lang) => lang.toUpperCase())
+        .join(", ");
+      return interaction.reply({
+        content: `Available languages: ${availableLanguages}`,
+        ephemeral: true,
+      });
+    }
+
+    if (!translations[selectedLanguage]) {
+      return interaction.reply({
+        content: t(guildId, "invalid_language"),
+        ephemeral: true,
+      });
+    }
+
+    const guildConfig = getGuildConfig(guildId) || {};
+    guildConfig.language = selectedLanguage;
+    saveGuildConfig(guildId, guildConfig);
+
+    return interaction.reply({
+      content: t(guildId, "language_set"),
+      ephemeral: true,
+    });
+  }
+
+  // Handle other commands similarly...
 });
 
+// Login to Discord
 client.login(BOT_TOKEN);
