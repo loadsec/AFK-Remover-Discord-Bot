@@ -32,27 +32,38 @@ db.exec(`
 
 // Helper function to save guild config to SQLite
 function saveGuildConfig(guildId, config) {
+  const existingConfig = getGuildConfig(guildId) || {};
+
+  // Merge new configuration with the existing one, ensuring existing values are retained if not overwritten
+  const updatedConfig = {
+    serverName: config.serverName || existingConfig.serverName,
+    afkChannelId: config.afkChannelId || existingConfig.afkChannelId,
+    afkChannelName: config.afkChannelName || existingConfig.afkChannelName,
+    allowedRoles: config.allowedRoles
+      ? JSON.stringify(config.allowedRoles)
+      : existingConfig.allowedRoles,
+    language: config.language || existingConfig.language || "en_us",
+    afkTimeout:
+      config.afkTimeout !== undefined
+        ? config.afkTimeout
+        : existingConfig.afkTimeout || 5,
+  };
+
   const stmt = db.prepare(`
     INSERT INTO guilds (guild_id, server_name, afk_channel_id, afk_channel_name, allowed_roles, language, afk_timeout)
     VALUES (@guildId, @serverName, @afkChannelId, @afkChannelName, @allowedRoles, @language, @afkTimeout)
     ON CONFLICT(guild_id) DO UPDATE SET
-      server_name = COALESCE(@serverName, server_name),
-      afk_channel_id = COALESCE(@afkChannelId, afk_channel_id),
-      afk_channel_name = COALESCE(@afkChannelName, afk_channel_name),
-      allowed_roles = COALESCE(@allowedRoles, allowed_roles),
-      language = COALESCE(@language, language),
-      afk_timeout = COALESCE(@afkTimeout, afk_timeout)
+      server_name = COALESCE(excluded.server_name, guilds.server_name),
+      afk_channel_id = COALESCE(excluded.afk_channel_id, guilds.afk_channel_id),
+      afk_channel_name = COALESCE(excluded.afk_channel_name, guilds.afk_channel_name),
+      allowed_roles = COALESCE(excluded.allowed_roles, guilds.allowed_roles),
+      language = COALESCE(excluded.language, guilds.language),
+      afk_timeout = COALESCE(excluded.afk_timeout, guilds.afk_timeout)
   `);
+
   stmt.run({
     guildId,
-    serverName: config.serverName,
-    afkChannelId: config.afkChannelId,
-    afkChannelName: config.afkChannelName,
-    allowedRoles: config.allowedRoles
-      ? JSON.stringify(config.allowedRoles)
-      : null,
-    language: config.language,
-    afkTimeout: config.afkTimeout,
+    ...updatedConfig,
   });
 }
 
@@ -108,107 +119,26 @@ const client = new Client({
 
 client.once("ready", () => {
   console.log(`Bot is running as ${client.user.tag}`);
-  client.user.setActivity("/setup", { type: ActivityType.Listening });
+  updateServerData(); // Perform the first update immediately
+  setInterval(updateServerData, 5 * 60 * 1000); // Update every 5 minutes
+
+  // Set bot activity to show it is listening to /afkinfo
+  client.user.setActivity("/afkinfo", { type: ActivityType.Listening });
 });
 
-// Register slash commands
-const rest = new REST({ version: "10" }).setToken(BOT_TOKEN);
-
-(async () => {
-  try {
-    console.log("Registering slash commands...");
-
-    const commands = [
-      {
-        name: "setup",
-        description:
-          "Set up the AFK channel, language, and timeout for the bot.",
-        options: [
-          {
-            name: "channel",
-            description: "Set the AFK channel.",
-            type: 3, // STRING
-            required: true,
-          },
-          {
-            name: "language",
-            description: "Set the language for the bot.",
-            type: 3, // STRING
-            required: true,
-          },
-          {
-            name: "afk_timeout",
-            description: "Set the AFK timeout in minutes.",
-            type: 3, // STRING
-            required: true,
-            choices: [
-              { name: "1 minute", value: "1" },
-              { name: "5 minutes", value: "5" },
-              { name: "15 minutes", value: "15" },
-              { name: "30 minutes", value: "30" },
-              { name: "1 hour", value: "60" },
-            ],
-          },
-        ],
-      },
-      {
-        name: "afkinfo",
-        description:
-          "Displays the current AFK channel, roles, timeout, and language configuration.",
-      },
-      {
-        name: "setafk",
-        description: "Set the AFK channel for the bot.",
-        options: [
-          {
-            name: "channel",
-            description: "The voice channel to set as AFK.",
-            type: 3, // STRING
-            required: true,
-          },
-        ],
-      },
-      {
-        name: "setlang",
-        description: "Set the language for the bot.",
-        options: [
-          {
-            name: "language",
-            description: "The language to set for the bot.",
-            type: 3, // STRING
-            required: true,
-          },
-        ],
-      },
-      {
-        name: "afklimit",
-        description:
-          "Displays and updates the current AFK timeout setting for users.",
-        options: [
-          {
-            name: "afk_timeout",
-            description: "The AFK timeout in minutes.",
-            type: 3, // STRING
-            required: true,
-            choices: [
-              { name: "1 minute", value: "1" },
-              { name: "5 minutes", value: "5" },
-              { name: "15 minutes", value: "15" },
-              { name: "30 minutes", value: "30" },
-              { name: "1 hour", value: "60" },
-            ],
-          },
-        ],
-      },
-    ];
-
-    await rest.put(Routes.applicationCommands(CLIENT_ID), { body: commands });
-
-    console.log("Slash commands registered successfully!");
-  } catch (error) {
-    console.error("Error registering commands:", error);
-  }
-})();
+// Helper function to get the current time in Brasília (UTC-3)
+function getBrasiliaTime() {
+  const formatter = new Intl.DateTimeFormat("pt-BR", {
+    timeZone: "America/Sao_Paulo",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
+  });
+  return formatter.format(new Date());
+}
 
 // Helper function to find a voice channel by name or ID
 function findVoiceChannel(guild, input) {
@@ -220,40 +150,66 @@ function findVoiceChannel(guild, input) {
   );
 }
 
-// Handle interaction commands
+// Helper function to find roles with "Administrator" permission
+function findAdminRoles(guild) {
+  return guild.roles.cache
+    .filter(
+      (role) =>
+        role.permissions.has(PermissionsBitField.Flags.Administrator) &&
+        !role.managed
+    )
+    .map((role) => ({ id: role.id, name: role.name }));
+}
+
+// Periodically update server data, including default admin roles and native AFK channel
+async function updateServerData() {
+  client.guilds.cache.forEach(async (guild) => {
+    try {
+      const guildConfig = getGuildConfig(guild.id) || {};
+      guildConfig.serverName = guild.name;
+
+      // Detect admin roles
+      const adminRoles = findAdminRoles(guild);
+      guildConfig.allowedRoles = adminRoles;
+
+      // Detect preferred locale for language
+      const locale = guild.preferredLocale.toLowerCase().replace("-", "_"); // Convert pt-BR to pt_br
+      if (translations[locale]) {
+        guildConfig.language = locale;
+      } else {
+        guildConfig.language = "en_us"; // Default to en_us
+      }
+
+      // Check native AFK channel
+      const afkChannelId = guild.afkChannelId;
+      if (afkChannelId) {
+        const afkChannel = guild.channels.cache.get(afkChannelId);
+        if (afkChannel) {
+          guildConfig.afkChannelId = afkChannel.id;
+          guildConfig.afkChannelName = afkChannel.name;
+        }
+      }
+
+      // Set default AFK timeout if not set
+      if (guildConfig.afkTimeout === undefined) {
+        guildConfig.afkTimeout = 5; // Default timeout of 5 minutes if not set
+      }
+
+      // Save updated config
+      saveGuildConfig(guild.id, guildConfig);
+    } catch (error) {
+      console.error(`Error updating server data for guild ${guild.id}:`, error);
+    }
+  });
+
+  console.log(t(null, "server_data_updated", { time: getBrasiliaTime() }));
+}
+
+// Handle /afkinfo command
 client.on("interactionCreate", async (interaction) => {
   if (!interaction.isCommand()) return;
 
   const { commandName, guildId } = interaction;
-
-  if (commandName === "setup") {
-    const channelInput = interaction.options.getString("channel");
-    const selectedLanguage = interaction.options.getString("language");
-    const afkTimeout = interaction.options.getString("afk_timeout");
-
-    const afkChannel = findVoiceChannel(interaction.guild, channelInput);
-    if (!afkChannel) {
-      return interaction.reply({
-        content: "Invalid AFK channel.",
-        ephemeral: true,
-      });
-    }
-
-    const config = {
-      serverName: interaction.guild.name,
-      afkChannelId: afkChannel.id,
-      afkChannelName: afkChannel.name,
-      language: selectedLanguage,
-      afkTimeout: parseInt(afkTimeout, 10),
-    };
-
-    saveGuildConfig(guildId, config);
-
-    return interaction.reply({
-      content: "Setup complete.",
-      ephemeral: true,
-    });
-  }
 
   if (commandName === "afkinfo") {
     const guildConfig = getGuildConfig(guildId);
@@ -274,6 +230,15 @@ client.on("interactionCreate", async (interaction) => {
           inline: true,
         },
         {
+          name: "Allowed Roles",
+          value: guildConfig.allowedRoles.length
+            ? guildConfig.allowedRoles
+                .map((role) => `<@&${role.id}>`)
+                .join(", ")
+            : "None",
+          inline: true,
+        },
+        {
           name: "Language",
           value: guildConfig.language.toUpperCase(),
           inline: true,
@@ -287,61 +252,6 @@ client.on("interactionCreate", async (interaction) => {
 
     return interaction.reply({ embeds: [afkInfoEmbed], ephemeral: true });
   }
-
-  if (commandName === "setafk") {
-    const channelInput = interaction.options.getString("channel");
-    const afkChannel = findVoiceChannel(interaction.guild, channelInput);
-
-    if (!afkChannel) {
-      return interaction.reply({
-        content: "Invalid AFK channel.",
-        ephemeral: true,
-      });
-    }
-
-    const guildConfig = getGuildConfig(guildId) || {};
-    guildConfig.afkChannelId = afkChannel.id;
-    guildConfig.afkChannelName = afkChannel.name;
-    saveGuildConfig(guildId, guildConfig);
-
-    return interaction.reply({
-      content: `AFK channel set to ${afkChannel.name}`,
-      ephemeral: true,
-    });
-  }
-
-  if (commandName === "setlang") {
-    const selectedLanguage = interaction.options.getString("language");
-
-    if (!translations[selectedLanguage]) {
-      return interaction.reply({
-        content: "Invalid language selection.",
-        ephemeral: true,
-      });
-    }
-
-    const guildConfig = getGuildConfig(guildId) || {};
-    guildConfig.language = selectedLanguage;
-    saveGuildConfig(guildId, guildConfig);
-
-    return interaction.reply({
-      content: `Language set to ${selectedLanguage}`,
-      ephemeral: true,
-    });
-  }
-
-  if (commandName === "afklimit") {
-    const afkTimeout = interaction.options.getString("afk_timeout");
-
-    const guildConfig = getGuildConfig(guildId) || {};
-    guildConfig.afkTimeout = parseInt(afkTimeout, 10);
-    saveGuildConfig(guildId, guildConfig);
-
-    return interaction.reply({
-      content: `AFK timeout updated to ${afkTimeout} minute(s)`,
-      ephemeral: true,
-    });
-  }
 });
 
 // Track voice states to manage AFK channel behavior
@@ -353,19 +263,7 @@ client.on("voiceStateUpdate", async (oldState, newState) => {
     const afkChannelId = guildConfig.afkChannelId;
     const afkTimeout = guildConfig.afkTimeout * 60 * 1000;
 
-    if (newState.channelId === afkChannelId) {
-      if (newState.member.id === client.user.id) return;
-
-      const botPermissions = newState.channel.permissionsFor(
-        newState.guild.members.me
-      );
-      if (!botPermissions.has(PermissionsBitField.Flags.MoveMembers)) {
-        return;
-      }
-
-      await newState.disconnect();
-    }
-
+    // Check if a user is in a voice channel and muted/deafened for more than the configured timeout
     if (
       newState.channelId &&
       newState.channelId !== afkChannelId &&
@@ -381,9 +279,10 @@ client.on("voiceStateUpdate", async (oldState, newState) => {
           currentState.selfMute &&
           currentState.selfDeaf
         ) {
+          // Move user to AFK channel if still muted and deafened after the configured timeout
           await currentState.setChannel(afkChannelId);
         }
-      }, afkTimeout);
+      }, afkTimeout); // Configured AFK timeout
     }
   } catch (error) {
     console.error(
