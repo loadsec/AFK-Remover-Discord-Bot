@@ -97,12 +97,15 @@ const client = new Client({
 });
 
 client.once("ready", () => {
-  console.log(`Bot is running as ${client.user.tag}`);
+  console.log(t(null, "bot_running", { botTag: client.user.tag }));
   updateServerData(); // Perform the first update immediately
   setInterval(updateServerData, 5 * 60 * 1000); // Update every 5 minutes
 
   // Set bot activity to show it is listening to /afkinfo
-  client.user.setActivity("/afkinfo", { type: ActivityType.Listening });
+  client.user.setActivity(
+    t(null, "activity_listening_command", { command: "/afkinfo" }),
+    { type: ActivityType.Listening }
+  );
 
   // Register slash commands
   registerSlashCommands();
@@ -127,7 +130,7 @@ async function registerSlashCommands() {
   const rest = new REST({ version: "10" }).setToken(BOT_TOKEN);
 
   try {
-    console.log("Registering new slash commands...");
+    console.log(t(null, "registering_commands"));
 
     const commands = [
       {
@@ -138,9 +141,9 @@ async function registerSlashCommands() {
 
     await rest.put(Routes.applicationCommands(CLIENT_ID), { body: commands });
 
-    console.log("Slash commands registered successfully!");
+    console.log(t(null, "commands_registered_successfully"));
   } catch (error) {
-    console.error("Error registering commands:", error);
+    console.error(t(null, "error_registering_commands"), error);
   }
 }
 
@@ -172,7 +175,10 @@ async function updateServerData() {
       // Save updated config only if it was not previously set
       saveGuildConfig(guild.id, guildConfig);
     } catch (error) {
-      console.error(`Error updating server data for guild ${guild.id}:`, error);
+      console.error(
+        t(null, "error_updating_server_data", { guildId: guild.id }),
+        error
+      );
     }
   });
 
@@ -196,9 +202,7 @@ client.on("voiceStateUpdate", async (oldState, newState) => {
         newState.guild.members.me
       );
       if (!botPermissions.has(PermissionsBitField.Flags.MoveMembers)) {
-        console.error(
-          "Missing 'Move Members' permission to disconnect user from AFK channel"
-        );
+        console.error(t(newState.guild.id, "bot_move_permission_missing"));
         return;
       }
 
