@@ -24,7 +24,6 @@ db.exec(`
     server_name TEXT,
     afk_channel_id TEXT,
     afk_channel_name TEXT,
-    allowed_roles TEXT,
     language TEXT DEFAULT 'en_us'
   )
 `);
@@ -32,13 +31,12 @@ db.exec(`
 // Helper function to save guild config to SQLite
 function saveGuildConfig(guildId, config) {
   const stmt = db.prepare(`
-    INSERT INTO guilds (guild_id, server_name, afk_channel_id, afk_channel_name, allowed_roles, language)
-    VALUES (@guildId, @serverName, @afkChannelId, @afkChannelName, @allowedRoles, @language)
+    INSERT INTO guilds (guild_id, server_name, afk_channel_id, afk_channel_name, language)
+    VALUES (@guildId, @serverName, @afkChannelId, @afkChannelName, @language)
     ON CONFLICT(guild_id) DO UPDATE SET
       server_name = COALESCE(guilds.server_name, @serverName),
       afk_channel_id = COALESCE(guilds.afk_channel_id, @afkChannelId),
       afk_channel_name = COALESCE(guilds.afk_channel_name, @afkChannelName),
-      allowed_roles = COALESCE(guilds.allowed_roles, @allowedRoles),
       language = COALESCE(guilds.language, @language)
   `);
   stmt.run({
@@ -46,7 +44,6 @@ function saveGuildConfig(guildId, config) {
     serverName: config.serverName,
     afkChannelId: config.afkChannelId,
     afkChannelName: config.afkChannelName,
-    allowedRoles: JSON.stringify(config.allowedRoles),
     language: config.language,
   });
 }
@@ -60,7 +57,6 @@ function getGuildConfig(guildId) {
       serverName: row.server_name,
       afkChannelId: row.afk_channel_id,
       afkChannelName: row.afk_channel_name,
-      allowedRoles: JSON.parse(row.allowed_roles),
       language: row.language,
     };
   }
@@ -155,12 +151,6 @@ async function updateServerData() {
       const guildConfig = getGuildConfig(guild.id) || {};
       guildConfig.serverName = guildConfig.serverName || guild.name;
 
-      // Detect admin roles if not already set
-      if (!guildConfig.allowedRoles) {
-        const adminRoles = findAdminRoles(guild);
-        guildConfig.allowedRoles = adminRoles;
-      }
-
       // Detect preferred locale for language if not already set
       if (!guildConfig.language) {
         const locale = guild.preferredLocale.toLowerCase().replace("-", "_"); // Convert pt-BR to pt_br
@@ -187,17 +177,6 @@ async function updateServerData() {
   });
 
   console.log(t(null, "server_data_updated", { time: getBrasiliaTime() }));
-}
-
-// Helper function to find roles with "Administrator" permission
-function findAdminRoles(guild) {
-  return guild.roles.cache
-    .filter(
-      (role) =>
-        role.permissions.has(PermissionsBitField.Flags.Administrator) &&
-        !role.managed
-    )
-    .map((role) => ({ id: role.id, name: role.name }));
 }
 
 // Track voice states to manage AFK channel behavior
@@ -276,15 +255,6 @@ client.on("interactionCreate", async (interaction) => {
         {
           name: t(guildId, "afkinfo_channel"),
           value: guildConfig.afkChannelName || t(guildId, "afkinfo_not_set"),
-          inline: true,
-        },
-        {
-          name: t(guildId, "afkinfo_roles"),
-          value: guildConfig.allowedRoles?.length
-            ? guildConfig.allowedRoles
-                .map((role) => `<@&${role.id}>`)
-                .join(", ")
-            : t(guildId, "afkinfo_no_roles"),
           inline: true,
         },
         {
