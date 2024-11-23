@@ -254,4 +254,50 @@ client.on("voiceStateUpdate", async (oldState, newState) => {
   }
 });
 
+// Command interaction handler
+client.on("interactionCreate", async (interaction) => {
+  if (!interaction.isCommand()) return;
+
+  const { commandName, guildId } = interaction;
+
+  if (commandName === "afkinfo") {
+    const guildConfig = getGuildConfig(guildId);
+    if (!guildConfig) {
+      return interaction.reply({
+        content: t(guildId, "no_configuration"),
+        ephemeral: true,
+      });
+    }
+
+    const embed = new EmbedBuilder()
+      .setColor(0x0099ff)
+      .setTitle(t(guildId, "afkinfo_title"))
+      .addFields(
+        {
+          name: t(guildId, "afkinfo_channel"),
+          value: guildConfig.afkChannelName || t(guildId, "afkinfo_not_set"),
+          inline: true,
+        },
+        {
+          name: t(guildId, "afkinfo_roles"),
+          value: guildConfig.allowedRoles?.length
+            ? guildConfig.allowedRoles
+                .map((role) => `<@&${role.id}>`)
+                .join(", ")
+            : t(guildId, "afkinfo_no_roles"),
+          inline: true,
+        },
+        {
+          name: t(guildId, "afkinfo_language"),
+          value: guildConfig.language?.toUpperCase() || "EN_US",
+          inline: true,
+        }
+      )
+      .setFooter({ text: t(guildId, "afkinfo_footer") })
+      .setTimestamp();
+
+    return interaction.reply({ embeds: [embed], ephemeral: true });
+  }
+});
+
 client.login(BOT_TOKEN);
