@@ -34,6 +34,7 @@ db.exec(`
 function saveGuildConfig(guildId, config) {
   const existingConfig = getGuildConfig(guildId) || {};
 
+  // Merge new configuration with the existing one, ensuring existing values are retained if not overwritten
   const updatedConfig = {
     serverName: config.serverName || existingConfig.serverName,
     afkChannelId: config.afkChannelId || existingConfig.afkChannelId,
@@ -52,12 +53,12 @@ function saveGuildConfig(guildId, config) {
     INSERT INTO guilds (guild_id, server_name, afk_channel_id, afk_channel_name, allowed_roles, language, afk_timeout)
     VALUES (@guildId, @serverName, @afkChannelId, @afkChannelName, @allowedRoles, @language, @afkTimeout)
     ON CONFLICT(guild_id) DO UPDATE SET
-      server_name = excluded.server_name,
-      afk_channel_id = excluded.afk_channel_id,
-      afk_channel_name = excluded.afk_channel_name,
-      allowed_roles = excluded.allowed_roles,
-      language = excluded.language,
-      afk_timeout = excluded.afk_timeout
+      server_name = COALESCE(excluded.server_name, guilds.server_name),
+      afk_channel_id = COALESCE(excluded.afk_channel_id, guilds.afk_channel_id),
+      afk_channel_name = COALESCE(excluded.afk_channel_name, guilds.afk_channel_name),
+      allowed_roles = COALESCE(excluded.allowed_roles, guilds.allowed_roles),
+      language = COALESCE(excluded.language, guilds.language),
+      afk_timeout = COALESCE(excluded.afk_timeout, guilds.afk_timeout)
   `);
 
   stmt.run({
