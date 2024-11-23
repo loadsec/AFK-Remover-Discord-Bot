@@ -278,26 +278,24 @@ function findAdminRoles(guild) {
 async function updateServerData() {
   client.guilds.cache.forEach(async (guild) => {
     try {
-      const existingConfig = getGuildConfig(guild.id) || {};
+      const existingConfig = getGuildConfig(guild.id);
 
+      // Caso já existam configurações, não as sobrescreva.
+      if (existingConfig) {
+        return;
+      }
+
+      // Se não houver uma configuração existente, crie uma nova configuração para o servidor
       const guildConfig = {
-        ...existingConfig,
-        serverName: existingConfig.serverName || guild.name,
+        serverName: guild.name,
         language:
-          existingConfig.language ||
-          guild.preferredLocale.toLowerCase().replace("-", "_") ||
-          "en_us",
-        allowedRoles: existingConfig.allowedRoles || findAdminRoles(guild),
-        afkChannelId: existingConfig.afkChannelId || guild.afkChannelId,
-        afkChannelName:
-          existingConfig.afkChannelName ||
-          (guild.afkChannelId
-            ? guild.channels.cache.get(guild.afkChannelId)?.name
-            : null),
-        afkTimeout:
-          existingConfig.afkTimeout !== undefined
-            ? existingConfig.afkTimeout
-            : 5,
+          guild.preferredLocale.toLowerCase().replace("-", "_") || "en_us",
+        allowedRoles: findAdminRoles(guild),
+        afkChannelId: guild.afkChannelId,
+        afkChannelName: guild.afkChannelId
+          ? guild.channels.cache.get(guild.afkChannelId)?.name
+          : null,
+        afkTimeout: 5,
       };
 
       saveGuildConfig(guild.id, guildConfig);
