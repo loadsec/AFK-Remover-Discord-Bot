@@ -6,6 +6,7 @@ const {
   REST,
   Routes,
   EmbedBuilder,
+  PermissionsBitField,
   ActivityType,
 } = require("discord.js");
 const Database = require("better-sqlite3");
@@ -14,7 +15,6 @@ require("dotenv").config();
 // Environment variables
 const BOT_TOKEN = process.env.BOT_TOKEN;
 const CLIENT_ID = process.env.CLIENT_ID;
-const GUILD_ID = process.env.GUILD_ID; // Assuming GUILD_ID is set in the .env file
 
 // SQLite database setup
 const db = new Database("server_config.db");
@@ -140,9 +140,7 @@ async function registerSlashCommands() {
       },
     ];
 
-    await rest.put(Routes.applicationGuildCommands(CLIENT_ID, GUILD_ID), {
-      body: commands,
-    });
+    await rest.put(Routes.applicationCommands(CLIENT_ID), { body: commands });
 
     console.log("Slash commands registered successfully!");
   } catch (error) {
@@ -219,6 +217,9 @@ client.on("voiceStateUpdate", async (oldState, newState) => {
         newState.guild.members.me
       );
       if (!botPermissions.has(PermissionsBitField.Flags.MoveMembers)) {
+        console.error(
+          "Missing 'Move Members' permission to disconnect user from AFK channel"
+        );
         return;
       }
 
