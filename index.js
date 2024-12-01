@@ -102,10 +102,9 @@ client.once("ready", () => {
   setInterval(updateServerData, 5 * 60 * 1000); // Update every 5 minutes
 
   // Set bot activity to show it is listening to /afkinfo
-  client.user.setActivity(
-    t(null, "activity_listening_command", { command: "/afkinfo" }),
-    { type: ActivityType.Listening }
-  );
+  client.user.setActivity(t(null, { command: "/afkinfo" }), {
+    type: ActivityType.Listening,
+  });
 
   // Register slash commands
   registerSlashCommands();
